@@ -22,9 +22,7 @@ def fetch_events():
     today = now.date()
     limit_date = today + timedelta(days=5)
     
-    all_day_html = ""
-    timed_html = ""
-    collected = []
+    all_day_html, timed_html, collected = "", "", []
 
     for component in gcal.walk('vevent'):
         dtstart = component.get('dtstart').dt
@@ -41,27 +39,13 @@ def fetch_events():
             display_start = max(start_date, today)
             
             if is_all_day:
-                time_label = "ALL DAY"
-                iso_time = central.localize(datetime.combine(display_start, datetime.min.time())).strftime("%Y-%m-%dT%H:%M:%S%z")
+                time_label, iso_time = "ALL DAY", central.localize(datetime.combine(display_start, datetime.min.time())).strftime("%Y-%m-%dT%H:%M:%S%z")
             else:
                 event_dt = dtstart.astimezone(central)
-                time_label = event_dt.strftime("%I:%M %p").lstrip("0")
-                iso_time = event_dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+                time_label, iso_time = event_dt.strftime("%I:%M %p").lstrip("0"), event_dt.strftime("%Y-%m-%dT%H:%M:%S%z")
 
             desc_html = f'<div class="event-description">{desc}</div>' if desc else ""
-            
-            html = f"""
-            <div class="event-entry {get_town_class(summary, location)}" data-time="{iso_time}" data-all-day="{str(is_all_day).lower()}">
-                <div class="event-date-box">
-                    <span class="event-day">{display_start.strftime("%d")}</span>
-                    <span class="event-month">{display_start.strftime("%b")}</span>
-                </div>
-                <div class="event-info">
-                    <span class="event-meta">{time_label} • {location}</span>
-                    <h4>{summary}</h4>
-                    {desc_html}
-                </div>
-            </div>"""
+            html = f'<div class="event-entry {get_town_class(summary, location)}" data-time="{iso_time}" data-all-day="{str(is_all_day).lower()}"><div class="event-date-box"><span class="event-day">{display_start.strftime("%d")}</span><span class="event-month">{display_start.strftime("%b")}</span></div><div class="event-info"><span class="event-meta">{time_label} • {location}</span><h4>{summary}</h4>{desc_html}</div></div>'
             
             sort_val = dtstart if isinstance(dtstart, datetime) else datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc)
             collected.append({'is_all_day': is_all_day, 'html': html, 'sort': sort_val})
@@ -70,27 +54,21 @@ def fetch_events():
     for e in collected:
         if e['is_all_day']: all_day_html += e['html']
         else: timed_html += e['html']
-        
     return all_day_html, timed_html
 
 if __name__ == "__main__":
     ad_html, t_html = fetch_events()
-    
-    target_file = ""
-    for root, dirs, files in os.walk("."):
-        if "index.html" in files:
-            target_file = os.path.join(root, "index.html")
-            break
+    # Try current directory first, then the specific subfolder
+    possible_files = ["index.html", "Clay-County-Bulletin/index.html"]
+    target = next((f for f in possible_files if os.path.exists(f)), None)
 
-    if target_file:
-        with open(target_file, "r", encoding="utf-8") as f:
+    if target:
+        with open(target, "r", encoding="utf-8") as f:
             content = f.read()
-        
         content = re.sub(r".*?", f"{ad_html}", content, flags=re.DOTALL)
         content = re.sub(r".*?", f"{t_html}", content, flags=re.DOTALL)
-        
-        with open(target_file, "w", encoding="utf-8") as f:
+        with open(target, "w", encoding="utf-8") as f:
             f.write(content)
-        print(f"Success: Updated {target_file}")
+        print(f"Updated: {target}")
     else:
         print("Error: index.html not found.")
