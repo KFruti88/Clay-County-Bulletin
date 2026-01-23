@@ -5,72 +5,75 @@
             margin: 20px auto;
             padding: 25px;
             border: 1px solid #222;
-            background-color: #fffdf5;
+            background-color: #fffdf5 !important;
             box-shadow: 6px 6px 0px #222;
             font-family: Arial, sans-serif;
+            text-align: left;
         }
 
         .calendar-header {
             text-align: center;
             border-top: 4px solid #222;
             border-bottom: 2px solid #222;
-            padding: 15px 0;
-            margin-bottom: 25px;
+            padding: 10px 0;
+            margin-bottom: 20px;
         }
 
         .event-entry {
             display: flex;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             padding-bottom: 15px;
             border-bottom: 1px dashed #999;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.6s ease, filter 0.6s ease;
         }
         .event-entry:last-child { border-bottom: none; }
 
-        /* Shading Logic for Past Events */
+        /* --- THE FADED OUT STYLE --- */
         .event-entry.past-event {
-            opacity: 0.35;
-            filter: grayscale(100%);
+            opacity: 0.3 !important;
+            filter: grayscale(100%) blur(0.5px);
         }
 
         .event-date-box {
             min-width: 70px;
             text-align: center;
             padding: 10px 5px;
-            height: fit-content;
             margin-right: 20px;
+            height: fit-content;
         }
+
         .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
-        .event-month { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-
-        /* --- TOWN THEMES --- */
-
+        .event-month { font-size: 11px; text-transform: uppercase; }
+        
+        /* Town Themes - Rule: Box = Primary, Font = Background/Accent */
+        
         /* Louisville: Red Box, Black Font */
-        .louisville-event .event-date-box { background-color: #eb1c24; }
-        .louisville-event .event-day, .louisville-event .event-month { color: #000000; }
-        .louisville-event .event-meta { color: #eb1c24; font-weight: bold; }
+        .louisville-theme .event-date-box { background-color: #eb1c24 !important; }
+        .louisville-theme .event-day, .louisville-theme .event-month { color: #000000 !important; }
+        .louisville-theme .event-meta { color: #eb1c24; font-weight: bold; }
 
         /* Flora: Orange Box, Blue Font */
-        .flora-event .event-date-box { background-color: #fe4f00; }
-        .flora-event .event-day, .flora-event .event-month { color: #0c0b82; }
-        .flora-event .event-meta { color: #fe4f00; font-weight: bold; }
+        .flora-theme .event-date-box { background-color: #fe4f00 !important; }
+        .flora-theme .event-day, .flora-theme .event-month { color: #0c0b82 !important; }
+        .flora-theme .event-meta { color: #fe4f00; font-weight: bold; }
 
         /* Clay City: Grey Box, Blue Font */
-        .clay-city-event .event-date-box { background-color: #a2a2a2; }
-        .clay-city-event .event-day, .clay-city-event .event-month { color: #0000ff; }
-        .clay-city-event .event-meta { color: #7a7a7a; font-weight: bold; }
+        .clay-city-theme .event-date-box { background-color: #a2a2a2 !important; }
+        .clay-city-theme .event-day, .clay-city-theme .event-month { color: #0000ff !important; }
+        .clay-city-theme .event-meta { color: #7a7a7a; font-weight: bold; }
 
-        .event-info h4 { font-family: "Times New Roman", serif; font-size: 18px; margin: 0; color: #222; }
-        .event-meta { font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .event-info h4 { font-family: "Times New Roman", serif !important; font-size: 18px !important; margin: 0 !important; color: #222 !important; }
+        .event-meta { font-size: 11px; text-transform: uppercase; display: block; color: #666; font-weight: bold; margin-bottom: 5px; }
         .event-desc { font-size: 13px; color: #555; line-height: 1.3; margin-top: 4px; }
     </style>
 
     <div class="calendar-header">
-        <h2 style="font-family: 'Times New Roman', serif; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 28px;">Clay County Bulletin</h2>
+        <h2 style="font-family: 'Times New Roman', serif; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 24px; color: #222;">Local Bulletin</h2>
+        <span style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px;">Live Updates • 5-Day Outlook</span>
     </div>
 
-    <div id="bulletin-list">
-        <div class="event-entry flora-event" data-time="2026-01-23T18:00:00" data-all-day="false">
+    <div id="event-list">
+        <div class="event-entry flora-theme" data-time="2026-01-23T18:00:00" data-all-day="false">
             <div class="event-date-box">
                 <span class="event-day">23</span>
                 <span class="event-month">Jan</span>
@@ -78,79 +81,39 @@
             <div class="event-info">
                 <span class="event-meta">Flora • 6:00 PM</span>
                 <h4>HS Girls Basketball</h4>
-                <p class="event-desc">Flora Wolves vs Tri-Central.</p>
             </div>
         </div>
-
-        <div class="event-entry louisville-event" data-time="2026-01-24T09:00:00" data-all-day="false">
-            <div class="event-date-box">
-                <span class="event-day">24</span>
-                <span class="event-month">Jan</span>
-            </div>
-            <div class="event-info">
-                <span class="event-meta">Louisville • 9:00 AM</span>
-                <h4>JH Boys BKB / CEO 3 on 3</h4>
-                <p class="event-desc">IESA Regionals and community tournament.</p>
-            </div>
         </div>
 
-        <div class="event-entry clay-city-event" data-time="2026-01-25" data-all-day="true">
-            <div class="event-date-box">
-                <span class="event-day">25</span>
-                <span class="event-month">Jan</span>
-            </div>
-            <div class="event-info">
-                <span class="event-meta">Clay City • ALL DAY</span>
-                <h4>Town Council Meeting</h4>
-                <p class="event-desc">Review of local community development projects.</p>
-            </div>
-        </div>
+    <script type="text/javascript">
+        (function() {
+            function checkTime() {
+                const now = new Date();
+                const entries = document.querySelectorAll('.event-entry');
+                
+                entries.forEach(el => {
+                    const timeAttr = el.getAttribute('data-time');
+                    if (!timeAttr) return;
+                    
+                    const eventTime = new Date(timeAttr);
+                    const isAllDay = el.getAttribute('data-all-day') === 'true';
 
-        <div class="event-entry louisville-event" data-time="2026-01-26T16:15:00" data-all-day="false">
-            <div class="event-date-box">
-                <span class="event-day">26</span>
-                <span class="event-month">Jan</span>
-            </div>
-            <div class="event-info">
-                <span class="event-meta">BSE • 4:15 PM</span>
-                <h4>JH Girls Basketball</h4>
-                <p class="event-desc">North Clay Cardinals vs Brownstown/St. Elmo.</p>
-            </div>
-        </div>
-
-        <div class="event-entry flora-event" data-time="2026-01-31T19:00:00" data-all-day="false">
-            <div class="event-date-box">
-                <span class="event-day">31</span>
-                <span class="event-month">Jan</span>
-            </div>
-            <div class="event-info">
-                <span class="event-meta">Flora • 7:00 PM</span>
-                <h4>Chamber Awards Banquet</h4>
-                <p class="event-desc">Celebrating the 2025 local excellence awards.</p>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function updateShading() {
-            const now = new Date();
-            document.querySelectorAll('.event-entry').forEach(el => {
-                const isAllDay = el.getAttribute('data-all-day') === 'true';
-                const eventTime = new Date(el.getAttribute('data-time'));
-
-                if (isAllDay) {
-                    // Shading an all-day event only after the day is actually over
-                    const expiration = new Date(eventTime);
-                    expiration.setHours(23, 59, 59);
-                    if (now > expiration) el.classList.add('past-event');
-                } else {
-                    // Shading timed events as soon as they start
-                    if (now > eventTime) el.classList.add('past-event');
-                }
-            });
-        }
-        // Initial run and then update every minute
-        updateShading();
-        setInterval(updateShading, 60000);
+                    if (isAllDay) {
+                        // For all-day events, fade out only when the calendar day ends
+                        const endOfDay = new Date(eventTime);
+                        endOfDay.setHours(23, 59, 59);
+                        if (now > endOfDay) el.classList.add('past-event');
+                    } else {
+                        // For timed events, fade out as soon as the start time is passed
+                        if (now > eventTime) el.classList.add('past-event');
+                    }
+                });
+            }
+            
+            // Run immediately on script load
+            checkTime();
+            // Check every 30 seconds to update live shading
+            setInterval(checkTime, 30000);
+        })();
     </script>
 </div>
