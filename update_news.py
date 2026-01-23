@@ -1,27 +1,33 @@
 import requests
 from icalendar import Calendar
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import pytz
 
 ICS_URL = "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics"
 
 def get_town_class(summary, location):
     text = f"{summary} {location}".lower()
-    if "flora" in text: return "flora-event"
-    if "louisville" in text or "north clay" in text: return "louisville-event"
-    if "clay city" in text: return "clay-city-event"
-    return "default-event"
+    # Matches your updated Divi-ready theme names
+    if "flora" in text: return "flora-theme"
+    if "louisville" in text or "north clay" in text: return "louisville-theme"
+    if "clay city" in text: return "clay-city-theme"
+    return "default-theme"
 
-def get_upcoming_events(url, limit=5):
-    response = requests.get(url)
+def fetch_events_and_generate_html():
+    response = requests.get(ICS_URL)
     gcal = Calendar.from_ical(response.text)
+    
+    # Range: Start of Today to 5 days from now
     now = datetime.now(pytz.utc)
+    today_start = datetime.combine(now.date(), datetime.min.time()).replace(tzinfo=pytz.utc)
+    limit_date = today_start + timedelta(days=5)
+    
     events = []
 
     for component in gcal.walk('vevent'):
         dtstart = component.get('dtstart').dt
         
-        # Handle Date vs Datetime (All Day events are Date)
+        # Determine if All-Day
         if isinstance(dtstart, date) and not isinstance(dtstart, datetime):
             event_start = datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc)
             is_all_day = True
@@ -29,11 +35,10 @@ def get_upcoming_events(url, limit=5):
         else:
             event_start = dtstart.astimezone(pytz.utc)
             is_all_day = False
-            # Format time like "6:00 PM"
             display_time = event_start.strftime("%I:%M %p").lstrip("0")
 
-        # Keep if it's today or in the future
-        if event_start.date() >= now.date():
+        # Only include if within our 5-day window
+        if today_start <= event_start <= limit_date:
             events.append({
                 'start': event_start,
                 'display_time': display_time,
@@ -46,10 +51,10 @@ def get_upcoming_events(url, limit=5):
                 'iso_time': event_start.strftime("%Y-%m-%dT%H:%M:%S")
             })
 
+    # Sort events by time
     events.sort(key=lambda x: x['start'])
-    return events[:limit]
 
-def generate_html(events):
+    # Build the HTML output
     html_output = ""
     for e in events:
         html_output += f"""
@@ -63,9 +68,8 @@ def generate_html(events):
                 <h4>{e['summary']}</h4>
             </div>
         </div>"""
+    
     return html_output
 
-# To use this in your GitHub Action, you'd have the script read your index.html 
-# and replace a placeholder tag with the output of generate_html(upcoming)
-upcoming = get_upcoming_events(ICS_URL)
-print(generate_html(upcoming))
+if __name__ == "__main__":
+    print(fetch_events_and_generate_html())
