@@ -21,8 +21,9 @@ jobs:
 
       - name: Run Update Script
         run: |
-          SCRIPT_FILE=$(find . -name "update_bulletin.py" -type f -print -quit)
-          python "$SCRIPT_FILE"
+          # This forces the robot to look inside your folder first
+          cd Clay-County-Bulletin || true
+          python update_bulletin.py
 
       - name: Commit and Push Changes
         run: |
