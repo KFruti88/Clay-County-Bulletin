@@ -20,7 +20,6 @@ jobs:
         run: pip install requests icalendar pytz
 
       - name: Run Update Script
-        # This updated command ensures we run the FILE, not the folder
         run: |
           SCRIPT_FILE=$(find . -name "update_bulletin.py" -type f -print -quit)
           python "$SCRIPT_FILE"
