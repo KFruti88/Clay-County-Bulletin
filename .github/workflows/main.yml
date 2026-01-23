@@ -1,8 +1,8 @@
 name: Auto Update Bulletin
 on:
   schedule:
-    - cron: '0 */12 * * *' # Runs every 12 hours
-  workflow_dispatch:      # Allows you to click a button to run it manually
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
         run: pip install requests icalendar pytz
 
       - name: Run Update Script
-        run: python update_bulletin.py
+        run: python ./update_bulletin.py
 
       - name: Commit and Push Changes
         run: |
