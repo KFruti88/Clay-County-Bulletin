@@ -27,9 +27,12 @@
         .event-date-box { min-width: 70px; text-align: center; padding: 10px 5px; margin-right: 20px; height: fit-content; }
         .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
         .event-month { font-size: 11px; text-transform: uppercase; }
+
+        /* Town Themes */
         .louisville-theme .event-date-box { background-color: #eb1c24 !important; color: #000 !important; }
         .flora-theme .event-date-box { background-color: #fe4f00 !important; color: #0c0b82 !important; }
         .clay-city-theme .event-date-box { background-color: #a2a2a2 !important; color: #0000ff !important; }
+        
         .event-info h4 { font-family: "Times New Roman", serif !important; font-size: 18px !important; margin: 0 !important; color: #222 !important; }
         .event-meta { font-size: 11px; text-transform: uppercase; display: block; color: #666; font-weight: bold; margin-bottom: 5px; }
         .event-description { font-size: 13px; color: #444; margin-top: 4px; line-height: 1.4; }
@@ -41,12 +44,44 @@
 
     <span class="section-label">Community Bulletins</span>
     <div id="all-day-events">
-        <p style="text-align:center; font-style:italic; color:#999; font-size:12px; padding:10px;">No active bulletins.</p>
+        <div class="event-entry flora-theme" data-time="2026-01-23T00:00:00-0600" data-all-day="true">
+            <div class="event-date-box">
+                <span class="event-day">23</span>
+                <span class="event-month">JAN</span>
+            </div>
+            <div class="event-info">
+                <span class="event-meta">ALL DAY • Flora, IL</span>
+                <h4>Flora City-Wide Cleanup</h4>
+                <div class="event-description">Residential cleanup day for Flora residents. Please have items at the curb by 7:00 AM.</div>
+            </div>
+        </div>
         </div>
 
     <span class="section-label" style="margin-top:20px;">Upcoming Schedule</span>
     <div id="timed-events">
-        <p style="text-align:center; font-style:italic; color:#999; font-size:12px; padding:10px;">Loading schedule...</p>
+        <div class="event-entry louisville-theme" data-time="2026-01-24T18:00:00-0600" data-all-day="false">
+            <div class="event-date-box">
+                <span class="event-day">24</span>
+                <span class="event-month">JAN</span>
+            </div>
+            <div class="event-info">
+                <span class="event-meta">6:00 PM • Louisville, IL</span>
+                <h4>North Clay Varsity Basketball</h4>
+                <div class="event-description">Home game vs. Clay City. Senior night presentation starts at 5:45 PM.</div>
+            </div>
+        </div>
+
+        <div class="event-entry clay-city-theme" data-time="2026-01-26T19:00:00-0600" data-all-day="false">
+            <div class="event-date-box">
+                <span class="event-day">26</span>
+                <span class="event-month">JAN</span>
+            </div>
+            <div class="event-info">
+                <span class="event-meta">7:00 PM • Clay City, IL</span>
+                <h4>Village Board Meeting</h4>
+                <div class="event-description">Regularly scheduled meeting at the Village Hall. Open to the public.</div>
+            </div>
+        </div>
         </div>
 
     <script type="text/javascript">
