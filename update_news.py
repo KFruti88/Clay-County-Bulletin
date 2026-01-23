@@ -2,59 +2,69 @@ import requests
 from icalendar import Calendar
 from datetime import datetime, date, timedelta
 import pytz
+import re
 
 ICS_URL = "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics"
 
 def get_town_class(summary, location):
     text = f"{summary} {location}".lower()
-    # Matches your updated Divi-ready theme names
     if "flora" in text: return "flora-theme"
     if "louisville" in text or "north clay" in text: return "louisville-theme"
     if "clay city" in text: return "clay-city-theme"
     return "default-theme"
 
-def fetch_events_and_generate_html():
+def fetch_5_day_events():
     response = requests.get(ICS_URL)
     gcal = Calendar.from_ical(response.text)
     
-    # Range: Start of Today to 5 days from now
     now = datetime.now(pytz.utc)
-    today_start = datetime.combine(now.date(), datetime.min.time()).replace(tzinfo=pytz.utc)
-    limit_date = today_start + timedelta(days=5)
+    today = now.date()
+    # Looking 5 days ahead
+    limit_date = today + timedelta(days=5)
     
     events = []
 
     for component in gcal.walk('vevent'):
         dtstart = component.get('dtstart').dt
+        dtend = component.get('dtend').dt
         
-        # Determine if All-Day
-        if isinstance(dtstart, date) and not isinstance(dtstart, datetime):
-            event_start = datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc)
-            is_all_day = True
-            display_time = "ALL DAY"
-        else:
-            event_start = dtstart.astimezone(pytz.utc)
-            is_all_day = False
-            display_time = event_start.strftime("%I:%M %p").lstrip("0")
+        # Convert to date objects for range checking
+        start_date = dtstart if isinstance(dtstart, date) else dtstart.date()
+        # Some iCal events don't have an end date, default to start date
+        end_date = dtend if isinstance(dtend, date) else (dtend.date() if dtend else start_date)
 
-        # Only include if within our 5-day window
-        if today_start <= event_start <= limit_date:
+        # Check if any part of the event falls within today and the next 5 days
+        if start_date <= limit_date and end_date >= today:
+            is_all_day = not isinstance(dtstart, datetime)
+            
+            # If the event started in the past, show it as starting 'Today'
+            display_start = max(start_date, today)
+            
+            if is_all_day:
+                display_time = "ALL DAY"
+                # For All-Day shading logic, we use the start of that day
+                iso_time = datetime.combine(display_start, datetime.min.time()).replace(tzinfo=pytz.utc).strftime("%Y-%m-%dT%H:%M:%S")
+            else:
+                event_datetime = dtstart.astimezone(pytz.utc)
+                display_time = event_datetime.strftime("%I:%M %p").lstrip("0")
+                iso_time = event_datetime.strftime("%Y-%m-%dT%H:%M:%S")
+
             events.append({
-                'start': event_start,
+                'sort_key': dtstart if isinstance(dtstart, datetime) else datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc),
                 'display_time': display_time,
-                'day': event_start.strftime("%d"),
-                'month': event_start.strftime("%b"),
+                'day': display_start.strftime("%d"),
+                'month': display_start.strftime("%b"),
                 'summary': str(component.get('summary')),
                 'location': str(component.get('location') or 'Clay County'),
                 'is_all_day': str(is_all_day).lower(),
                 'town_class': get_town_class(str(component.get('summary')), str(component.get('location'))),
-                'iso_time': event_start.strftime("%Y-%m-%dT%H:%M:%S")
+                'iso_time': iso_time
             })
 
-    # Sort events by time
-    events.sort(key=lambda x: x['start'])
-
-    # Build the HTML output
+    # Sort by the actual start time
+    events.sort(key=lambda x: x['sort_key'])
+    
+    # Generate HTML
     html_output = ""
     for e in events:
         html_output += f"""
@@ -68,8 +78,21 @@ def fetch_events_and_generate_html():
                 <h4>{e['summary']}</h4>
             </div>
         </div>"""
-    
     return html_output
 
 if __name__ == "__main__":
-    print(fetch_events_and_generate_html())
+    new_html = fetch_5_day_events()
+    
+    with open("index.html", "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    # This REGEX looks for the start and end comments and replaces everything in between
+    pattern = r".*?"
+    replacement = f"{new_html}"
+    
+    updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+    
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(updated_content)
+    
+    print("Bulletin successfully updated with latest events.")
