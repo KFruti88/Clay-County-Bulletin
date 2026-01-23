@@ -38,11 +38,10 @@
         }
         .event-entry:last-child { border-bottom: none; }
 
-        /* Date Box Clipping */
+        /* Date Box Base */
         .event-date-box {
             min-width: 70px;
             text-align: center;
-            background: #222;
             color: #fff;
             padding: 10px 5px;
             height: fit-content;
@@ -50,6 +49,16 @@
         }
         .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
         .event-month { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- TOWN SPECIFIC THEMES --- */
+        
+        /* Louisville / North Clay: Black background, Cardinal Red text */
+        .louisville-theme .event-date-box { background-color: #010101; color: #eb1c24; border: 1px solid #eb1c24; }
+        .louisville-theme .event-meta { color: #eb1c24; }
+
+        /* Flora: Deep Blue background, Orange text */
+        .flora-theme .event-date-box { background-color: #0c0b82; color: #fe4f00; border: 1px solid #fe4f00; }
+        .flora-theme .event-meta { color: #0c0b82; } /* Using the blue for the meta text to keep it readable */
 
         /* Event Details */
         .event-info h4 {
@@ -61,7 +70,6 @@
         }
         .event-meta {
             font-size: 11px;
-            color: #d9534f; /* Alert Red */
             text-transform: uppercase;
             font-weight: bold;
             display: block;
@@ -79,7 +87,7 @@
         <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #666; display: block; margin-top: 5px;">Community Events & Athletics</span>
     </div>
 
-    <div class="event-entry">
+    <div class="event-entry louisville-theme">
         <div class="event-date-box">
             <span class="event-day">24</span>
             <span class="event-month">Jan</span>
@@ -91,7 +99,7 @@
         </div>
     </div>
 
-    <div class="event-entry">
+    <div class="event-entry louisville-theme">
         <div class="event-date-box">
             <span class="event-day">26</span>
             <span class="event-month">Jan</span>
@@ -103,8 +111,8 @@
         </div>
     </div>
 
-    <div class="event-entry">
-        <div class="event-date-box" style="background: #d9534f;"> 
+    <div class="event-entry flora-theme">
+        <div class="event-date-box"> 
             <span class="event-day">31</span>
             <span class="event-month">Jan</span>
         </div>
@@ -116,6 +124,6 @@
     </div>
 
     <div style="text-align: center; margin-top: 15px;">
-         <p style="font-family: 'Times New Roman'; font-style: italic; font-size: 12px; color: #666;">Tournament times are subject to seeding. Go Wolves!</p>
+         <p style="font-family: 'Times New Roman'; font-style: italic; font-size: 12px; color: #666;">Tournament times are subject to seeding. Go Wolves & Cardinals!</p>
     </div>
 </div>
