@@ -1,17 +1,15 @@
 <div class="clay-county-news-box calendar-bulletin">
     <style>
-        /* Shared Container Style */
         .clay-county-news-box.calendar-bulletin {
             max-width: 500px;
             margin: 20px auto;
             padding: 25px;
             border: 1px solid #222;
-            background-color: #fffdf5; /* Aged Paper tint */
+            background-color: #fffdf5;
             box-shadow: 6px 6px 0px #222;
             font-family: Arial, sans-serif;
         }
 
-        /* Newspaper Header */
         .calendar-header {
             text-align: center;
             border-top: 4px solid #222;
@@ -19,30 +17,25 @@
             padding: 15px 0;
             margin-bottom: 25px;
         }
-        .calendar-header h2 {
-            font-family: "Times New Roman", Times, serif !important;
-            font-weight: 900 !important;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 0 !important;
-            color: #222 !important;
-            font-size: 28px !important;
-        }
 
-        /* Event Item Styling */
         .event-entry {
             display: flex;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 1px dashed #999;
+            transition: opacity 0.5s ease;
         }
         .event-entry:last-child { border-bottom: none; }
 
-        /* Date Box Base */
+        /* Shading Logic for Past Events */
+        .event-entry.past-event {
+            opacity: 0.35;
+            filter: grayscale(100%);
+        }
+
         .event-date-box {
             min-width: 70px;
             text-align: center;
-            color: #fff;
             padding: 10px 5px;
             height: fit-content;
             margin-right: 20px;
@@ -50,80 +43,114 @@
         .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
         .event-month { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* --- TOWN SPECIFIC THEMES --- */
-        
-        /* Louisville / North Clay: Black background, Cardinal Red text */
-        .louisville-theme .event-date-box { background-color: #010101; color: #eb1c24; border: 1px solid #eb1c24; }
-        .louisville-theme .event-meta { color: #eb1c24; }
+        /* --- TOWN THEMES --- */
 
-        /* Flora: Deep Blue background, Orange text */
-        .flora-theme .event-date-box { background-color: #0c0b82; color: #fe4f00; border: 1px solid #fe4f00; }
-        .flora-theme .event-meta { color: #0c0b82; } /* Using the blue for the meta text to keep it readable */
+        /* Louisville: Red Box, Black Font */
+        .louisville-event .event-date-box { background-color: #eb1c24; }
+        .louisville-event .event-day, .louisville-event .event-month { color: #000000; }
+        .louisville-event .event-meta { color: #eb1c24; font-weight: bold; }
 
-        /* Event Details */
-        .event-info h4 {
-            font-family: "Times New Roman", Times, serif !important;
-            font-size: 18px !important;
-            font-weight: bold !important;
-            margin: 0 0 5px 0 !important;
-            color: #222 !important;
-        }
-        .event-meta {
-            font-size: 11px;
-            text-transform: uppercase;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 5px;
-        }
-        .event-desc {
-            font-size: 14px;
-            line-height: 1.4;
-            color: #444;
-        }
+        /* Flora: Orange Box, Blue Font */
+        .flora-event .event-date-box { background-color: #fe4f00; }
+        .flora-event .event-day, .flora-event .event-month { color: #0c0b82; }
+        .flora-event .event-meta { color: #fe4f00; font-weight: bold; }
+
+        /* Clay City: Grey Box, Blue Font */
+        .clay-city-event .event-date-box { background-color: #a2a2a2; }
+        .clay-city-event .event-day, .clay-city-event .event-month { color: #0000ff; }
+        .clay-city-event .event-meta { color: #7a7a7a; font-weight: bold; }
+
+        .event-info h4 { font-family: "Times New Roman", serif; font-size: 18px; margin: 0; color: #222; }
+        .event-meta { font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .event-desc { font-size: 13px; color: #555; line-height: 1.3; margin-top: 4px; }
     </style>
 
     <div class="calendar-header">
-        <h2>Clay County Bulletin</h2>
-        <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #666; display: block; margin-top: 5px;">Community Events & Athletics</span>
+        <h2 style="font-family: 'Times New Roman', serif; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 28px;">Clay County Bulletin</h2>
     </div>
 
-    <div class="event-entry louisville-theme">
-        <div class="event-date-box">
-            <span class="event-day">24</span>
-            <span class="event-month">Jan</span>
+    <div id="bulletin-list">
+        <div class="event-entry flora-event" data-time="2026-01-23T18:00:00" data-all-day="false">
+            <div class="event-date-box">
+                <span class="event-day">23</span>
+                <span class="event-month">Jan</span>
+            </div>
+            <div class="event-info">
+                <span class="event-meta">Flora • 6:00 PM</span>
+                <h4>HS Girls Basketball</h4>
+                <p class="event-desc">Flora Wolves vs Tri-Central.</p>
+            </div>
         </div>
-        <div class="event-info">
-            <span class="event-meta">Louisville • 9:00 AM</span>
-            <h4>JH Boys BKB / CEO 3 on 3</h4>
-            <p class="event-desc">Junior High Boys Basketball at 8th Grade IESA Regionals (TBA) and the CEO 3 on 3 tournament.</p>
+
+        <div class="event-entry louisville-event" data-time="2026-01-24T09:00:00" data-all-day="false">
+            <div class="event-date-box">
+                <span class="event-day">24</span>
+                <span class="event-month">Jan</span>
+            </div>
+            <div class="event-info">
+                <span class="event-meta">Louisville • 9:00 AM</span>
+                <h4>JH Boys BKB / CEO 3 on 3</h4>
+                <p class="event-desc">IESA Regionals and community tournament.</p>
+            </div>
+        </div>
+
+        <div class="event-entry clay-city-event" data-time="2026-01-25" data-all-day="true">
+            <div class="event-date-box">
+                <span class="event-day">25</span>
+                <span class="event-month">Jan</span>
+            </div>
+            <div class="event-info">
+                <span class="event-meta">Clay City • ALL DAY</span>
+                <h4>Town Council Meeting</h4>
+                <p class="event-desc">Review of local community development projects.</p>
+            </div>
+        </div>
+
+        <div class="event-entry louisville-event" data-time="2026-01-26T16:15:00" data-all-day="false">
+            <div class="event-date-box">
+                <span class="event-day">26</span>
+                <span class="event-month">Jan</span>
+            </div>
+            <div class="event-info">
+                <span class="event-meta">BSE • 4:15 PM</span>
+                <h4>JH Girls Basketball</h4>
+                <p class="event-desc">North Clay Cardinals vs Brownstown/St. Elmo.</p>
+            </div>
+        </div>
+
+        <div class="event-entry flora-event" data-time="2026-01-31T19:00:00" data-all-day="false">
+            <div class="event-date-box">
+                <span class="event-day">31</span>
+                <span class="event-month">Jan</span>
+            </div>
+            <div class="event-info">
+                <span class="event-meta">Flora • 7:00 PM</span>
+                <h4>Chamber Awards Banquet</h4>
+                <p class="event-desc">Celebrating the 2025 local excellence awards.</p>
+            </div>
         </div>
     </div>
 
-    <div class="event-entry louisville-theme">
-        <div class="event-date-box">
-            <span class="event-day">26</span>
-            <span class="event-month">Jan</span>
-        </div>
-        <div class="event-info">
-            <span class="event-meta">Altamont • TBA</span>
-            <h4>HS Boys BKB Tournament</h4>
-            <p class="event-desc">High School Boys Basketball competing at the NTC Tournament in Altamont.</p>
-        </div>
-    </div>
+    <script>
+        function updateShading() {
+            const now = new Date();
+            document.querySelectorAll('.event-entry').forEach(el => {
+                const isAllDay = el.getAttribute('data-all-day') === 'true';
+                const eventTime = new Date(el.getAttribute('data-time'));
 
-    <div class="event-entry flora-theme">
-        <div class="event-date-box"> 
-            <span class="event-day">31</span>
-            <span class="event-month">Jan</span>
-        </div>
-        <div class="event-info">
-            <span class="event-meta">Flora • 7:00 PM</span>
-            <h4>Chamber of Commerce Awards</h4>
-            <p class="event-desc">The 2025 Flora Chamber of Commerce Annual Awards Banquet celebrating local excellence.</p>
-        </div>
-    </div>
-
-    <div style="text-align: center; margin-top: 15px;">
-         <p style="font-family: 'Times New Roman'; font-style: italic; font-size: 12px; color: #666;">Tournament times are subject to seeding. Go Wolves & Cardinals!</p>
-    </div>
+                if (isAllDay) {
+                    // Shading an all-day event only after the day is actually over
+                    const expiration = new Date(eventTime);
+                    expiration.setHours(23, 59, 59);
+                    if (now > expiration) el.classList.add('past-event');
+                } else {
+                    // Shading timed events as soon as they start
+                    if (now > eventTime) el.classList.add('past-event');
+                }
+            });
+        }
+        // Initial run and then update every minute
+        updateShading();
+        setInterval(updateShading, 60000);
+    </script>
 </div>
