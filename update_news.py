@@ -17,9 +17,10 @@ def fetch_5_day_events():
     response = requests.get(ICS_URL)
     gcal = Calendar.from_ical(response.text)
     
-    now = datetime.now(pytz.utc)
+    # Define Central Time for accurate shading in Clay County
+    central = pytz.timezone('America/Chicago')
+    now = datetime.now(central)
     today = now.date()
-    # Looking 5 days ahead
     limit_date = today + timedelta(days=5)
     
     events = []
@@ -29,25 +30,30 @@ def fetch_5_day_events():
         dtend = component.get('dtend').dt
         
         # Convert to date objects for range checking
-        start_date = dtstart if isinstance(dtstart, date) else dtstart.date()
-        # Some iCal events don't have an end date, default to start date
-        end_date = dtend if isinstance(dtend, date) else (dtend.date() if dtend else start_date)
+        start_date = dtstart if isinstance(dtstart, date) else dtstart.astimezone(central).date()
+        # Handle missing end dates
+        if dtend:
+            end_date = dtend if isinstance(dtend, date) else dtend.astimezone(central).date()
+        else:
+            end_date = start_date
 
-        # Check if any part of the event falls within today and the next 5 days
+        # Check if the event overlaps with our 5-day window
         if start_date <= limit_date and end_date >= today:
             is_all_day = not isinstance(dtstart, datetime)
             
-            # If the event started in the past, show it as starting 'Today'
+            # Use today as display date if already started
             display_start = max(start_date, today)
             
             if is_all_day:
                 display_time = "ALL DAY"
-                # For All-Day shading logic, we use the start of that day
-                iso_time = datetime.combine(display_start, datetime.min.time()).replace(tzinfo=pytz.utc).strftime("%Y-%m-%dT%H:%M:%S")
+                # Localize all-day events to midnight Central Time
+                local_dt = central.localize(datetime.combine(display_start, datetime.min.time()))
+                iso_time = local_dt.strftime("%Y-%m-%dT%H:%M:%S%z")
             else:
-                event_datetime = dtstart.astimezone(pytz.utc)
+                # Convert UTC to Central
+                event_datetime = dtstart.astimezone(central)
                 display_time = event_datetime.strftime("%I:%M %p").lstrip("0")
-                iso_time = event_datetime.strftime("%Y-%m-%dT%H:%M:%S")
+                iso_time = event_datetime.strftime("%Y-%m-%dT%H:%M:%S%z")
 
             events.append({
                 'sort_key': dtstart if isinstance(dtstart, datetime) else datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc),
@@ -61,7 +67,7 @@ def fetch_5_day_events():
                 'iso_time': iso_time
             })
 
-    # Sort by the actual start time
+    # Sort by actual start time
     events.sort(key=lambda x: x['sort_key'])
     
     # Generate HTML
@@ -86,7 +92,7 @@ if __name__ == "__main__":
     with open("index.html", "r", encoding="utf-8") as f:
         content = f.read()
     
-    # This REGEX looks for the start and end comments and replaces everything in between
+    # FIXED: Replaces everything between these two specific comment markers
     pattern = r".*?"
     replacement = f"{new_html}"
     
@@ -95,4 +101,4 @@ if __name__ == "__main__":
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(updated_content)
     
-    print("Bulletin successfully updated with latest events.")
+    print("Bulletin successfully updated.")
