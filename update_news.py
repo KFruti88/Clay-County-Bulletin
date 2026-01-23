@@ -13,15 +13,15 @@ def get_town_class(summary, location):
     if "clay city" in text: return "clay-city-theme"
     return "default-theme"
 
-def fetch_5_day_events():
+def fetch_events():
     response = requests.get(ICS_URL)
     gcal = Calendar.from_ical(response.text)
     
-    # Define Central Time for accurate shading in Clay County
+    # Accurate timezone for Clay County
     central = pytz.timezone('America/Chicago')
     now = datetime.now(central)
     today = now.date()
-    limit_date = today + timedelta(days=5)
+    limit_date = today + timedelta(days=5) # 5-Day Outlook
     
     events = []
 
@@ -29,28 +29,26 @@ def fetch_5_day_events():
         dtstart = component.get('dtstart').dt
         dtend = component.get('dtend').dt
         
-        # Convert to date objects for range checking
+        # Standardize dates for comparison
         start_date = dtstart if isinstance(dtstart, date) else dtstart.astimezone(central).date()
-        # Handle missing end dates
         if dtend:
             end_date = dtend if isinstance(dtend, date) else dtend.astimezone(central).date()
         else:
             end_date = start_date
 
-        # Check if the event overlaps with our 5-day window
+        # Include if the event overlaps with our 5-day window
         if start_date <= limit_date and end_date >= today:
             is_all_day = not isinstance(dtstart, datetime)
             
-            # Use today as display date if already started
+            # For multi-day tournaments, show the date it is active (today or start date)
             display_start = max(start_date, today)
             
             if is_all_day:
                 display_time = "ALL DAY"
-                # Localize all-day events to midnight Central Time
+                # Set ISO time to midnight Central for the shading script
                 local_dt = central.localize(datetime.combine(display_start, datetime.min.time()))
                 iso_time = local_dt.strftime("%Y-%m-%dT%H:%M:%S%z")
             else:
-                # Convert UTC to Central
                 event_datetime = dtstart.astimezone(central)
                 display_time = event_datetime.strftime("%I:%M %p").lstrip("0")
                 iso_time = event_datetime.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -67,12 +65,11 @@ def fetch_5_day_events():
                 'iso_time': iso_time
             })
 
-    # Sort by actual start time
+    # Sort by time and take top 5
     events.sort(key=lambda x: x['sort_key'])
     
-    # Generate HTML
     html_output = ""
-    for e in events:
+    for e in events[:5]:
         html_output += f"""
         <div class="event-entry {e['town_class']}" data-time="{e['iso_time']}" data-all-day="{e['is_all_day']}">
             <div class="event-date-box">
@@ -87,12 +84,12 @@ def fetch_5_day_events():
     return html_output
 
 if __name__ == "__main__":
-    new_html = fetch_5_day_events()
+    new_html = fetch_events()
     
     with open("index.html", "r", encoding="utf-8") as f:
         content = f.read()
     
-    # FIXED: Replaces everything between these two specific comment markers
+    # FIXED REGEX: Specifically looks for your comment tags
     pattern = r".*?"
     replacement = f"{new_html}"
     
@@ -101,4 +98,4 @@ if __name__ == "__main__":
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(updated_content)
     
-    print("Bulletin successfully updated.")
+    print("Bulletin successfully updated with 5-day outlook.")
