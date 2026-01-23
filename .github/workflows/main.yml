@@ -21,9 +21,10 @@ jobs:
 
       - name: Run Update Script
         run: |
-          # This forces the robot to look inside your folder first
-          cd Clay-County-Bulletin || true
-          python update_bulletin.py
+          # This finds the file no matter how many folders deep it is
+          SCRIPT_PATH=$(find . -name "update_bulletin.py" -type f -print -quit)
+          if [ -z "$SCRIPT_PATH" ]; then echo "Error: update_bulletin.py not found"; exit 1; fi
+          python "$SCRIPT_PATH"
 
       - name: Commit and Push Changes
         run: |
