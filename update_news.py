@@ -4,7 +4,6 @@ from datetime import datetime, date, timedelta
 import pytz
 import re
 
-# Your iCal Link
 ICS_URL = "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics"
 
 def get_town_class(summary, location):
@@ -17,8 +16,6 @@ def get_town_class(summary, location):
 def fetch_events():
     response = requests.get(ICS_URL)
     gcal = Calendar.from_ical(response.text)
-    
-    # Accurate timezone for Clay County
     central = pytz.timezone('America/Chicago')
     now = datetime.now(central)
     today = now.date()
@@ -35,14 +32,12 @@ def fetch_events():
         location = str(component.get('location') or 'Clay County')
         description = str(component.get('description') or '')
         
-        # Standardize dates for comparison
         start_date = dtstart if isinstance(dtstart, date) else dtstart.astimezone(central).date()
         if dtend:
             end_date = dtend if isinstance(dtend, date) else dtend.astimezone(central).date()
         else:
             end_date = start_date
 
-        # Include if the event overlaps with our 5-day window
         if start_date <= limit_date and end_date >= today:
             is_all_day = not isinstance(dtstart, datetime)
             display_start = max(start_date, today)
@@ -74,7 +69,6 @@ def fetch_events():
             sort_val = dtstart if isinstance(dtstart, datetime) else datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc)
             collected_events.append({'is_all_day': is_all_day, 'html': html, 'sort': sort_val})
 
-    # Sort all events chronologically
     collected_events.sort(key=lambda x: x['sort'])
     
     for e in collected_events:
@@ -89,11 +83,11 @@ if __name__ == "__main__":
     with open("index.html", "r", encoding="utf-8") as f:
         content = f.read()
     
-    # These Regex patterns MUST match your HTML comment tags
+    # REPLACING THE CONTENT
     content = re.sub(r".*?", f"{ad_html}", content, flags=re.DOTALL)
     content = re.sub(r".*?", f"{t_html}", content, flags=re.DOTALL)
     
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(content)
     
-    print("Success: Bulletin synced and index.html updated.")
+    print("Success: Bulletin updated.")
