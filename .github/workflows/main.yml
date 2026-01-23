@@ -20,12 +20,15 @@ jobs:
         run: pip install requests icalendar pytz
 
       - name: Run Update Script
-        run: python ./update_bulletin.py
+        # This command finds the file no matter what folder it is in
+        run: |
+          SCRIPT_PATH=$(find . -name "update_bulletin.py" -print -quit)
+          python "$SCRIPT_PATH"
 
       - name: Commit and Push Changes
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add index.html
+          git add .
           git commit -m "Automated Bulletin Update" || exit 0
           git push
