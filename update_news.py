@@ -3,6 +3,7 @@ from icalendar import Calendar
 from datetime import datetime, date, timedelta
 import pytz
 import os
+import re
 
 SOURCES = [
     "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics",
@@ -51,28 +52,20 @@ def fetch_events():
     return "".join([e['html'] for e in all_day]), "".join([e['html'] for e in timed])
 
 if __name__ == "__main__":
-    ad, t = fetch_events()
+    ad_html, t_html = fetch_events()
     target = next((os.path.join(r, f) for r, d, fs in os.walk(".") for f in fs if f == "index.html"), "index.html")
     
     if os.path.exists(target):
-        with open(target, "r", encoding="utf-8") as f: 
+        with open(target, "r", encoding="utf-8") as f:
             content = f.read()
-        
-        # New Logic: Look for the DIV IDs instead of comments
-        try:
-            # Inject All Day
-            pre, post = content.split('<div id="all-day-events">')
-            inner_post = post.split('</div>', 1)[1]
-            content = pre + '<div id="all-day-events">\n' + ad + '</div>' + inner_post
 
-            # Inject Timed
-            pre, post = content.split('<div id="timed-events">')
-            inner_post = post.split('</div>', 1)[1]
-            content = pre + '<div id="timed-events">\n' + t + '</div>' + inner_post
+        # THESE MARKERS MUST MATCH THE HTML COMMENTS BELOW
+        if "" in content and "" in content:
+            content = re.sub(r".*?", f"\n{ad_html}", content, flags=re.DOTALL)
+            content = re.sub(r".*?", f"\n{t_html}", content, flags=re.DOTALL)
             
-            with open(target, "w", encoding="utf-8") as f: 
+            with open(target, "w", encoding="utf-8") as f:
                 f.write(content)
-            print(f"Successfully updated {target}")
-        except ValueError:
-            print("ERROR: Could not find id='all-day-events' or id='timed-events' in index.html.")
-            exit(1)
+            print("Successfully updated Bot Zones.")
+        else:
+            print("Markers missing from index.html. Update aborted to protect manual events.")
