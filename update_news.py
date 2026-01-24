@@ -1,21 +1,59 @@
 import requests
+import csv
 from icalendar import Calendar
 from datetime import datetime, date, timedelta
 import pytz
+import io
 
-SOURCES = [
+# 1. SOURCES
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv"
+CALENDAR_SOURCES = [
     "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics",
     "https://www.facebook.com/events/ical/upcoming/?uid=100063547844172&key=rjmOs5JdN9NQhByz"
 ]
 
-def fetch_events():
+def fetch_safety_alerts():
+    central = pytz.timezone('America/Chicago')
+    now = datetime.now(central)
+    cutoff = now - timedelta(hours=24)
+    alert_html = ""
+    
+    try:
+        r = requests.get(SHEET_CSV_URL)
+        f = io.StringIO(r.text)
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Format: 1/23/2026 21:10:05
+            timestamp_str = row.get('Timestamp', '')
+            if not timestamp_str:
+                continue
+                
+            timestamp = datetime.strptime(timestamp_str, '%m/%d/%Y %H:%M:%S')
+            timestamp = central.localize(timestamp)
+            
+            if timestamp > cutoff:
+                alert_html += f'''
+                <div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 10px; margin-bottom: 10px;">
+                    <div class="event-info">
+                        <span class="event-meta" style="color: #eb1c24; font-weight: bold;">
+                            ⚠️ {row.get('What is the hazard?', 'Hazard')} • {row.get('Town/City', 'Clay County')}
+                        </span>
+                        <h4 style="margin: 5px 0;">{row.get('Where is it exactly?', 'Location TBD')}</h4>
+                        <div class="event-description">Reported: {timestamp.strftime('%I:%M %p')}</div>
+                    </div>
+                </div>'''
+    except Exception as e:
+        print(f"Safety Sheet Error: {e}")
+    return alert_html
+
+def fetch_calendar_events():
     central = pytz.timezone('America/Chicago')
     today = datetime.now(central).date()
     limit = today + timedelta(days=7)
     all_day, timed = [], []
     seen = set()
 
-    for url in SOURCES:
+    for url in CALENDAR_SOURCES:
         try:
             r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
             cal = Calendar.from_ical(r.text)
@@ -23,18 +61,15 @@ def fetch_events():
                 title = str(ev.get('summary'))
                 if title in seen: continue
                 
-                # GRABBING THE SPECIFIC DATA
                 start = ev.get('dtstart').dt
                 loc = str(ev.get('location') or 'Clay County')
                 desc = str(ev.get('description') or '').replace('\\n', '<br>')
-                
                 d = start if isinstance(start, date) else start.astimezone(central).date()
 
                 if today <= d <= limit:
                     is_ad = not isinstance(start, datetime)
                     t_label = "ALL DAY" if is_ad else start.astimezone(central).strftime("%I:%M %p").lstrip("0")
                     
-                    # This HTML structure MUST have these classes for the index to see them
                     html = f'''
                     <div class="event-entry">
                         <div class="event-date-box">
@@ -58,6 +93,12 @@ def fetch_events():
     return "".join([e['html'] for e in all_day]), "".join([e['html'] for e in timed])
 
 if __name__ == "__main__":
-    ad, t = fetch_events()
+    # Get all three data sets
+    safety = fetch_safety_alerts()
+    ad, t = fetch_calendar_events()
+    
+    # Write them all into the single feed.html file
     with open("feed.html", "w", encoding="utf-8") as f:
-        f.write(f'<div id="bot-ad-data">{ad}</div><div id="bot-t-data">{t}</div>')
+        f.write(f'<div id="bot-safety-data">{safety}</div>')
+        f.write(f'<div id="bot-ad-data">{ad}</div>')
+        f.write(f'<div id="bot-t-data">{t}</div>')
