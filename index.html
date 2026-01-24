@@ -68,6 +68,8 @@
 </div>
 
 <script>
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv";
+    
     const townColors = {
         "Flora": { bg: "#fe4f00", text: "#0c0b82" },
         "Louisville": { bg: "#eb1c24", text: "#010101" },
@@ -78,38 +80,68 @@
         "Clay County": { bg: "#ffffff", text: "#333333" }
     };
 
+    // 1. Fetch Safety Alerts (Instant)
+    fetch(SHEET_CSV_URL)
+        .then(response => response.text())
+        .then(csvText => {
+            const lines = csvText.split('\n');
+            let html = "";
+            const cutoff = Date.now() - (24 * 60 * 60 * 1000); 
+
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',');
+                if (cols.length < 2) continue;
+
+                const timestamp = new Date(cols[0]).getTime();
+                if (timestamp > cutoff) {
+                    const hazard = cols[1];
+                    const location = cols[2];
+                    const town = cols[3];
+                    
+                    let displayLoc = location;
+                    if (location.includes("http")) {
+                        displayLoc = `${location.split('http')[0]} <br> <a href="http${location.split('http')[1]}" target="_blank" style="display:inline-block; padding: 5px 10px; background: #eb1c24; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; margin-top: 5px;">📍 Open in Maps</a>`;
+                    }
+
+                    html += `
+                    <div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 10px; margin-bottom: 10px;">
+                        <div class="event-info">
+                            <span class="event-meta" style="color: #eb1c24; font-weight: bold;">⚠️ ${hazard} • ${town}</span>
+                            <h4 style="margin: 5px 0;">${displayLoc}</h4>
+                        </div>
+                    </div>`;
+                }
+            }
+            document.getElementById('bot-safety-target').innerHTML = html;
+        });
+
+    // 2. Fetch Robot Calendars (Scheduled)
     fetch('feed.html?t=' + Date.now()).then(r => r.text()).then(data => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(data, 'text/html');
         
-        // We added 'bot-safety-target' to the list of places to look
-        ['bot-safety-target', 'bot-ad-target', 'bot-t-target'].forEach(targetId => {
-            // This maps target ID to the source data ID in feed.html
+        ['bot-ad-target', 'bot-t-target'].forEach(targetId => {
             const feedSourceId = targetId.replace('target', 'data'); 
             const targetDiv = document.getElementById(targetId);
             const sourceEl = doc.getElementById(feedSourceId);
             
             if (sourceEl) {
                 targetDiv.innerHTML = sourceEl.innerHTML;
-                
-                // Don't apply town colors to safety alerts (they stay red)
-                if (targetId !== 'bot-safety-target') {
-                    targetDiv.querySelectorAll('.event-entry').forEach(entry => {
-                        const dateBox = entry.querySelector('.event-date-box');
-                        if (dateBox) {
-                            const fullText = entry.innerText.toLowerCase();
-                            for (const [town, colors] of Object.entries(townColors)) {
-                                if (fullText.includes(town.toLowerCase())) {
-                                    dateBox.style.backgroundColor = colors.bg;
-                                    dateBox.style.color = colors.text;
-                                }
+                targetDiv.querySelectorAll('.event-entry').forEach(entry => {
+                    const dateBox = entry.querySelector('.event-date-box');
+                    if (dateBox) {
+                        const fullText = entry.innerText.toLowerCase();
+                        for (const [town, colors] of Object.entries(townColors)) {
+                            if (fullText.includes(town.toLowerCase())) {
+                                dateBox.style.backgroundColor = colors.bg;
+                                dateBox.style.color = colors.text;
                             }
                         }
-                    });
-                }
+                    }
+                });
             }
         });
-    }).catch(e => console.error("Error loading bulletin feed:", e));
+    }).catch(e => console.error("Error loading feed:", e));
 </script>
 
 </body>
