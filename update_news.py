@@ -52,23 +52,27 @@ def fetch_events():
 
 if __name__ == "__main__":
     ad, t = fetch_events()
-    # Find index.html anywhere in the repo
     target = next((os.path.join(r, f) for r, d, fs in os.walk(".") for f in fs if f == "index.html"), "index.html")
     
     if os.path.exists(target):
         with open(target, "r", encoding="utf-8") as f: 
             content = f.read()
         
-        # Explicit Marker Check
-        markers = ["", "", "", ""]
-        if all(m in content for m in markers):
-            # Safe Splitting
-            new = content.split("")[0] + "\n" + ad + "" + content.split("")[1]
-            new = new.split("")[0] + "\n" + t + "" + new.split("")[1]
+        # New Logic: Look for the DIV IDs instead of comments
+        try:
+            # Inject All Day
+            pre, post = content.split('<div id="all-day-events">')
+            inner_post = post.split('</div>', 1)[1]
+            content = pre + '<div id="all-day-events">\n' + ad + '</div>' + inner_post
+
+            # Inject Timed
+            pre, post = content.split('<div id="timed-events">')
+            inner_post = post.split('</div>', 1)[1]
+            content = pre + '<div id="timed-events">\n' + t + '</div>' + inner_post
             
             with open(target, "w", encoding="utf-8") as f: 
-                f.write(new)
+                f.write(content)
             print(f"Successfully updated {target}")
-        else:
-            print("ERROR: One or more markers are missing from index.html. Check your HTML file.")
+        except ValueError:
+            print("ERROR: Could not find id='all-day-events' or id='timed-events' in index.html.")
             exit(1)
