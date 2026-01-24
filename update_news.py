@@ -2,7 +2,6 @@ import requests
 from icalendar import Calendar
 from datetime import datetime, date, timedelta
 import pytz
-import re
 import os
 
 SOURCES = [
@@ -27,7 +26,7 @@ def fetch_all_events():
 
     for url in SOURCES:
         try:
-            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
             gcal = Calendar.from_ical(response.text)
             for component in gcal.walk('vevent'):
                 summary = str(component.get('summary'))
@@ -42,30 +41,40 @@ def fetch_all_events():
                                 else dtstart.astimezone(central)).strftime("%Y-%m-%dT%H:%M:%S%z")
                     time_label = "ALL DAY" if is_all_day else dtstart.astimezone(central).strftime("%I:%M %p").lstrip("0")
 
-                    html = f'<div class="event-entry {get_town_class(summary, location)}" data-time="{iso_time}" data-all-day="{str(is_all_day).lower()}"><div class="event-date-box"><span class="event-day">{start_date.strftime("%d")}</span><span class="event-month">{start_date.strftime("%b")}</span></div><div class="event-info"><span class="event-meta">{time_label} • {location}</span><h4>{summary}</h4></div></div>'
+                    html = f'<div class="event-entry {get_town_class(summary, location)}" data-time="{iso_time}" data-all-day="{str(is_all_day).lower()}"><div class="event-date-box"><span class="event-day">{start_date.strftime("%d")}</span><span class="event-month">{start_date.strftime("%b")}</span></div><div class="event-info"><span class="event-meta">{time_label} • {location}</span><h4>{summary}</h4></div></div>\n'
                     sort_val = dtstart if isinstance(dtstart, datetime) else datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc)
                     collected.append({'is_all_day': is_all_day, 'html': html, 'sort': sort_val})
                     seen_titles.add(summary)
-        except: continue
+        except Exception as e:
+            print(f"Error fetching {url}: {e}")
 
     collected.sort(key=lambda x: x['sort'])
     return "".join([e['html'] for e in collected if e['is_all_day']]), "".join([e['html'] for e in collected if not e['is_all_day']])
 
 if __name__ == "__main__":
-    ad, t = fetch_all_events()
+    ad_html, t_html = fetch_all_events()
+    
+    # Find the HTML file
     target = next((os.path.join(r, f) for r, d, fs in os.walk(".") for f in fs if f == "index.html"), "index.html")
     
     if os.path.exists(target):
         with open(target, "r", encoding="utf-8") as f:
-            content = f.read()
-        
-        # Safety Check: Only update if BOTH start and end markers exist
-        if "" in content and "" in content:
-            content = re.sub(r".*?", f"{ad}", content, flags=re.DOTALL)
-            content = re.sub(r".*?", f"{t}", content, flags=re.DOTALL)
-            
+            full_text = f.read()
+
+        try:
+            # STEP 1: Handle All Day Events
+            pre_ad, rest = full_text.split("")
+            _, post_ad = rest.split("")
+            new_content = pre_ad + "\n" + ad_html + "" + post_ad
+
+            # STEP 2: Handle Timed Events
+            pre_t, rest_t = new_content.split("")
+            _, post_t = rest_t.split("")
+            final_content = pre_t + "\n" + t_html + "" + post_t
+
             with open(target, "w", encoding="utf-8") as f:
-                f.write(content)
-            print("Successfully updated HTML.")
-        else:
-            print("Error: Markers not found in HTML. File was NOT wiped.")
+                f.write(final_content)
+            print("Successfully updated.")
+        except ValueError:
+            print("CRITICAL ERROR: Markers (START/END) are missing from index.html. No changes saved.")
+            exit(1)
