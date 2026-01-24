@@ -5,7 +5,6 @@ import pytz
 import os
 import re
 
-# Sources: Google and Facebook
 SOURCES = [
     "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics",
     "https://www.facebook.com/events/ical/upcoming/?uid=100063547844172&key=rjmOs5JdN9NQhByz"
@@ -27,7 +26,6 @@ def fetch_events():
 
     for url in SOURCES:
         try:
-            # Added User-Agent for Facebook compatibility
             r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
             cal = Calendar.from_ical(r.text)
             for ev in cal.walk('vevent'):
@@ -61,13 +59,16 @@ if __name__ == "__main__":
         with open(target, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Check for BOT markers to prevent wiping the file
-        if "" in content and "" in content:
+        # VALIDATION: If these are missing, we stop IMMEDIATELY to protect your progress
+        if all(marker in content for marker in ["", "", "", ""]):
+            # Update All Day Zone
             content = re.sub(r".*?", f"\n{ad}", content, flags=re.DOTALL)
+            # Update Timed Zone
             content = re.sub(r".*?", f"\n{t}", content, flags=re.DOTALL)
             
             with open(target, "w", encoding="utf-8") as f:
                 f.write(content)
-            print("Successfully updated Bot Zones.")
+            print("Successfully updated automation zones. Manual progress preserved.")
         else:
-            print("Error: Markers not found. Update aborted to protect manual events.")
+            print("CRITICAL ERROR: Markers missing! Aborting to prevent data loss.")
+            exit(1)
