@@ -25,17 +25,16 @@ def fetch_events():
                 
                 start = ev.get('dtstart').dt
                 loc = str(ev.get('location') or 'Clay County')
-                desc = str(ev.get('description') or '')
+                # Clean up description to remove weird HTML characters
+                desc = str(ev.get('description') or '').replace('\\n', '<br>')
                 d = start if isinstance(start, date) else start.astimezone(central).date()
 
                 if today <= d <= limit:
                     is_ad = not isinstance(start, datetime)
                     t_label = "ALL DAY" if is_ad else start.astimezone(central).strftime("%I:%M %p").lstrip("0")
-                    iso = (central.localize(datetime.combine(d, datetime.min.time())) if is_ad else start.astimezone(central)).strftime("%Y-%m-%dT%H:%M:%S%z")
                     
-                    # Included location and description here
                     html = f'''
-                    <div class="event-entry" data-time="{iso}" data-all-day="{str(is_ad).lower()}">
+                    <div class="event-entry">
                         <div class="event-date-box">
                             <span class="event-day">{d.strftime("%d")}</span>
                             <span class="event-month">{d.strftime("%b")}</span>
@@ -51,6 +50,7 @@ def fetch_events():
                     (all_day if is_ad else timed).append({'html': html, 'sort': sort_key})
                     seen.add(title)
         except: continue
+    
     all_day.sort(key=lambda x: x['sort'])
     timed.sort(key=lambda x: x['sort'])
     return "".join([e['html'] for e in all_day]), "".join([e['html'] for e in timed])
