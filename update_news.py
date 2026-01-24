@@ -5,7 +5,6 @@ import pytz
 import re
 import os
 
-# SOURCES: Google and Facebook
 SOURCES = [
     "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics",
     "https://www.facebook.com/events/ical/upcoming/?uid=100063547844172&key=rjmOs5JdN9NQhByz"
@@ -23,13 +22,12 @@ def fetch_all_events():
     now = datetime.now(central)
     today = now.date()
     limit_date = today + timedelta(days=7)
-    
     collected = []
     seen_titles = set()
 
     for url in SOURCES:
         try:
-            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
             gcal = Calendar.from_ical(response.text)
             for component in gcal.walk('vevent'):
                 summary = str(component.get('summary'))
@@ -40,13 +38,9 @@ def fetch_all_events():
 
                 if today <= start_date <= limit_date:
                     is_all_day = not isinstance(dtstart, datetime)
-                    if is_all_day:
-                        time_label = "ALL DAY"
-                        iso_time = central.localize(datetime.combine(start_date, datetime.min.time())).strftime("%Y-%m-%dT%H:%M:%S%z")
-                    else:
-                        event_dt = dtstart.astimezone(central)
-                        time_label = event_dt.strftime("%I:%M %p").lstrip("0")
-                        iso_time = event_dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+                    iso_time = (central.localize(datetime.combine(start_date, datetime.min.time())) if is_all_day 
+                                else dtstart.astimezone(central)).strftime("%Y-%m-%dT%H:%M:%S%z")
+                    time_label = "ALL DAY" if is_all_day else dtstart.astimezone(central).strftime("%I:%M %p").lstrip("0")
 
                     html = f'<div class="event-entry {get_town_class(summary, location)}" data-time="{iso_time}" data-all-day="{str(is_all_day).lower()}"><div class="event-date-box"><span class="event-day">{start_date.strftime("%d")}</span><span class="event-month">{start_date.strftime("%b")}</span></div><div class="event-info"><span class="event-meta">{time_label} • {location}</span><h4>{summary}</h4></div></div>'
                     sort_val = dtstart if isinstance(dtstart, datetime) else datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc)
@@ -55,9 +49,7 @@ def fetch_all_events():
         except: continue
 
     collected.sort(key=lambda x: x['sort'])
-    ad_html = "".join([e['html'] for e in collected if e['is_all_day']])
-    t_html = "".join([e['html'] for e in collected if not e['is_all_day']])
-    return ad_html, t_html
+    return "".join([e['html'] for e in collected if e['is_all_day']]), "".join([e['html'] for e in collected if not e['is_all_day']])
 
 if __name__ == "__main__":
     ad, t = fetch_all_events()
@@ -66,7 +58,14 @@ if __name__ == "__main__":
     if os.path.exists(target):
         with open(target, "r", encoding="utf-8") as f:
             content = f.read()
-        content = re.sub(r".*?", f"{ad}", content, flags=re.DOTALL)
-        content = re.sub(r".*?", f"{t}", content, flags=re.DOTALL)
-        with open(target, "w", encoding="utf-8") as f:
-            f.write(content)
+        
+        # Safety Check: Only update if BOTH start and end markers exist
+        if "" in content and "" in content:
+            content = re.sub(r".*?", f"{ad}", content, flags=re.DOTALL)
+            content = re.sub(r".*?", f"{t}", content, flags=re.DOTALL)
+            
+            with open(target, "w", encoding="utf-8") as f:
+                f.write(content)
+            print("Successfully updated HTML.")
+        else:
+            print("Error: Markers not found in HTML. File was NOT wiped.")
