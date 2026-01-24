@@ -5,23 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clay County Bulletin</title>
     <style>
-        .clay-county-news-box.calendar-bulletin { max-width: 500px; margin: 20px auto; padding: 25px; border: 1px solid #222; background-color: #fffdf5; box-shadow: 6px 6px 0px #222; font-family: Arial, sans-serif; }
+        .clay-county-news-box.calendar-bulletin { max-width: 500px; margin: 20px auto; padding: 25px; border: 1px solid #222; background-color: #fffdf5; box-shadow: 6px 6px 0px #222; font-family: Arial, sans-serif; text-align: left; }
+        .calendar-header { text-align: center; border-top: 4px solid #222; border-bottom: 2px solid #222; padding: 10px 0; margin-bottom: 20px; }
+        .section-label { font-family: "Times New Roman", serif; font-weight: bold; text-transform: uppercase; font-size: 12px; color: #666; margin-bottom: 10px; border-bottom: 1px solid #ccc; display: block; }
         .event-entry { display: flex; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #999; }
-        .event-date-box { min-width: 70px; text-align: center; padding: 10px 5px; margin-right: 20px; border: 1px solid #222; }
+        .event-date-box { min-width: 70px; text-align: center; padding: 10px 5px; margin-right: 20px; height: fit-content; border: 1px solid #222; }
         .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
         .event-month { font-size: 11px; text-transform: uppercase; font-weight: bold; }
-        .event-info h4 { font-size: 18px; margin: 0; color: #222; font-weight: bold; font-family: "Times New Roman", serif; }
+        .event-info h4 { font-family: "Times New Roman", serif !important; font-size: 18px !important; margin: 0 !important; color: #222 !important; font-weight: bold; }
         .event-meta { font-size: 11px; text-transform: uppercase; display: block; color: #666; font-weight: bold; margin-bottom: 5px; }
-        .event-description { font-size: 13px; color: #444; margin-top: 5px; line-height: 1.4; display: block; }
-        
-        /* THEMES */
-        .flora-theme .event-date-box { background-color: #fe4f00 !important; color: #0c0b82 !important; }
-        .louisville-theme .event-date-box { background-color: #eb1c24 !important; color: #010101 !important; }
+        .event-description { font-size: 13px; color: #444; margin-top: 4px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
 <div class="clay-county-news-box calendar-bulletin">
+    <div class="calendar-header">
+        <h2 style="font-family: 'Times New Roman', serif; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 24px; color: #222;">Clay County Bulletin</h2>
+    </div>
+
     <span class="section-label">Community Bulletins</span>
     <div id="all-day-events">
         <div id="bot-ad-target"></div>
@@ -54,18 +56,13 @@
             const sourceEl = doc.getElementById(feedSourceId);
             
             if (sourceEl) {
-                // Use innerHTML to keep the structure (description and loc)
                 targetDiv.innerHTML = sourceEl.innerHTML;
-                
                 targetDiv.querySelectorAll('.event-entry').forEach(entry => {
                     const dateBox = entry.querySelector('.event-date-box');
-                    // Check the location span specifically
-                    const locText = entry.querySelector('.loc-text')?.innerText || "";
-                    const titleText = entry.querySelector('h4')?.innerText || "";
-                    const combined = (locText + " " + titleText).toLowerCase();
+                    const fullText = entry.innerText.toLowerCase();
                     
                     for (const [town, colors] of Object.entries(townColors)) {
-                        if (combined.includes(town.toLowerCase())) {
+                        if (fullText.includes(town.toLowerCase())) {
                             dateBox.style.backgroundColor = colors.bg;
                             dateBox.style.color = colors.text;
                         }
