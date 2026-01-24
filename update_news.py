@@ -17,38 +17,30 @@ CALENDAR_SOURCES = [
 # Initialize geolocator
 geolocator = Nominatim(user_agent="clay_county_safety_bulletin")
 
-def get_real_address(location_text):
-    """Translates techy data into 'People Talk'."""
-    # Check for coordinates (the long numbers)
+def get_human_location(location_text):
+    """Turns technical data into 'Landmarks' and 'Street Names'."""
+    # Pattern for coordinates
     coord_pattern = r'(-?\d+\.\d+),\s*(-?\d+\.\d+)'
     coord_match = re.search(coord_pattern, location_text)
     
-    # Check for a URL (the link)
-    link_pattern = r'(https?://\S+)'
-    link_match = re.search(link_pattern, location_text)
-
-    # 1. If it's a coordinate, translate it to a street name
+    # 1. If it's coordinates, get the street name
     if coord_match:
         lat, lon = coord_match.groups()
         try:
             location = geolocator.reverse(f"{lat}, {lon}", timeout=10)
             if location:
-                parts = location.address.split(',')
-                # Return 'Street, Town' (e.g., 'Old Hwy 50, Flora')
-                return f"{parts[0].strip()}, {parts[1].strip()}"
+                address_parts = location.address.split(',')
+                # Return 'Street Name, Town'
+                return f"{address_parts[0].strip()}, {address_parts[1].strip()}"
         except:
             pass
 
-    # 2. If they pasted a link but ALSO typed a description (like "Rail road west side")
-    # we want to strip the link out and just show their words.
-    if link_match:
-        clean_text = location_text.replace(link_match.group(1), "").strip()
-        if clean_text:
-            return clean_text
-        return "Shared Map Location" # Fallback if they ONLY sent a link
-
-    # 3. If they just typed words, keep them! (e.g., "By the water tower")
-    return location_text
+    # 2. If it's a URL, strip it out to see if there's regular text
+    clean_text = re.sub(r'https?://\S+', '', location_text).strip()
+    if clean_text:
+        return clean_text
+        
+    return "Location Pin"
 
 def fetch_safety_alerts():
     central = pytz.timezone('America/Chicago')
@@ -68,36 +60,38 @@ def fetch_safety_alerts():
             timestamp = central.localize(timestamp)
             
             if timestamp > cutoff:
-                raw_loc = row.get('Where is it exactly?', 'Location TBD')
-                display_location = get_real_address(raw_loc)
+                hazard = row.get('What is the hazard?', 'Public Safety Alert').upper()
+                raw_loc = row.get('Where is it exactly?', '')
+                town = row.get('Town/City', 'Clay County')
                 
-                # Check if there is a link for the "Hover" map
-                map_link = ""
+                # Get the "Dumbed Down" location name
+                friendly_loc = get_human_location(raw_loc)
+                
+                # Find any map link to attach to the icon
+                map_link = "https://www.google.com/maps"
                 link_match = re.search(r'(https?://\S+)', raw_loc)
                 if link_match:
                     map_link = link_match.group(1)
                 elif re.search(r'(-?\d+\.\d+),\s*(-?\d+\.\d+)', raw_loc):
-                    # If they gave coords, turn them into a google link for the hover
                     coords = re.search(r'(-?\d+\.\d+),\s*(-?\d+\.\d+)', raw_loc).group(0)
                     map_link = f"https://www.google.com/maps/search/?api=1&query={coords}"
 
-                # Wrap the location in a 'tooltip' style for the hover effect
                 alert_html += f'''
-                <div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 10px; margin-bottom: 10px;">
+                <div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 12px; margin-bottom: 10px; display: block;">
                     <div class="event-info">
-                        <span class="event-meta" style="color: #eb1c24; font-weight: bold;">
-                            ⚠️ {row.get('What is the hazard?', 'Hazard')} • {row.get('Town/City', 'Clay County')}
-                        </span>
-                        <h4 style="margin: 5px 0;">
-                            <a href="{map_link}" target="_blank" title="Click to see on Map" style="text-decoration: none; color: #222;">
-                                {display_location} 📍
-                            </a>
-                        </h4>
-                        <div class="event-description">Reported: {timestamp.strftime('%I:%M %p')}</div>
+                        <h3 style="margin: 0 0 5px 0; color: #eb1c24; font-family: 'Arial', sans-serif; font-size: 18px; font-weight: 900; line-height: 1.2;">
+                            ⚠️ {hazard}
+                        </h3>
+                        <div style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 4px;">
+                             📍 {friendly_loc} ({town})
+                        </div>
+                        <div class="event-meta" style="font-size: 11px; color: #666;">
+                            Reported: {timestamp.strftime('%I:%M %p')} • <a href="{map_link}" target="_blank" style="color: #eb1c24; font-weight: bold;">VIEW ON MAP</a>
+                        </div>
                     </div>
                 </div>'''
     except Exception as e:
-        print(f"Safety Sheet Error: {e}")
+        print(f"Safety Error: {e}")
     return alert_html
 
-# ... (Keep your fetch_calendar_events and main block as they were) ...
+# ... (rest of the calendar code stays the same)
