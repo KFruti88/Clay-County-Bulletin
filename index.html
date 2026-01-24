@@ -20,6 +20,10 @@
         .flora-theme .event-date-box { background-color: #fe4f00 !important; color: #0c0b82 !important; }
         .louisville-theme .event-date-box { background-color: #eb1c24 !important; color: #010101 !important; }
         .clay-city-theme .event-date-box { background-color: #8a8a88 !important; color: #0c30f0 !important; }
+        
+        /* SAFETY ALERT LINK STYLING */
+        .report-link { display: block; text-align: center; padding: 10px; border: 1px dashed #eb1c24; color: #eb1c24; text-decoration: none; font-weight: bold; font-size: 13px; margin-top: 10px; }
+        .report-link:hover { background-color: #fff5f5; }
     </style>
 </head>
 <body>
@@ -29,7 +33,13 @@
         <h2 style="font-family: 'Times New Roman', serif; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 24px; color: #222;">Clay County Bulletin</h2>
     </div>
 
-    <span class="section-label">Community Bulletins</span>
+    <span class="section-label" style="color: #eb1c24; border-bottom: 2px solid #eb1c24;">Public Safety Alerts</span>
+    <div id="safety-feed">
+        <div id="bot-safety-target"></div>
+        <a href="https://forms.gle/MTx4rePosdFDbfgx9" target="_blank" class="report-link">⚠️ Report a Hazard (Downed Trees, Wrecks, Flooding)</a>
+    </div>
+
+    <span class="section-label" style="margin-top:25px;">Community Bulletins</span>
     <div id="all-day-events">
         <div id="bot-ad-target"></div>
     </div>
@@ -72,27 +82,34 @@
         const parser = new DOMParser();
         const doc = parser.parseFromString(data, 'text/html');
         
-        ['bot-ad-target', 'bot-t-target'].forEach(targetId => {
-            const feedSourceId = targetId === 'bot-ad-target' ? 'bot-ad-data' : 'bot-t-data';
+        // We added 'bot-safety-target' to the list of places to look
+        ['bot-safety-target', 'bot-ad-target', 'bot-t-target'].forEach(targetId => {
+            // This maps target ID to the source data ID in feed.html
+            const feedSourceId = targetId.replace('target', 'data'); 
             const targetDiv = document.getElementById(targetId);
             const sourceEl = doc.getElementById(feedSourceId);
             
             if (sourceEl) {
                 targetDiv.innerHTML = sourceEl.innerHTML;
-                targetDiv.querySelectorAll('.event-entry').forEach(entry => {
-                    const dateBox = entry.querySelector('.event-date-box');
-                    const fullText = entry.innerText.toLowerCase();
-                    
-                    for (const [town, colors] of Object.entries(townColors)) {
-                        if (fullText.includes(town.toLowerCase())) {
-                            dateBox.style.backgroundColor = colors.bg;
-                            dateBox.style.color = colors.text;
+                
+                // Don't apply town colors to safety alerts (they stay red)
+                if (targetId !== 'bot-safety-target') {
+                    targetDiv.querySelectorAll('.event-entry').forEach(entry => {
+                        const dateBox = entry.querySelector('.event-date-box');
+                        if (dateBox) {
+                            const fullText = entry.innerText.toLowerCase();
+                            for (const [town, colors] of Object.entries(townColors)) {
+                                if (fullText.includes(town.toLowerCase())) {
+                                    dateBox.style.backgroundColor = colors.bg;
+                                    dateBox.style.color = colors.text;
+                                }
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         });
-    });
+    }).catch(e => console.error("Error loading bulletin feed:", e));
 </script>
 
 </body>
