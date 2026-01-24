@@ -23,16 +23,18 @@ def fetch_events():
                 title = str(ev.get('summary'))
                 if title in seen: continue
                 
+                # GRABBING THE SPECIFIC DATA
                 start = ev.get('dtstart').dt
                 loc = str(ev.get('location') or 'Clay County')
-                # Clean up description to remove weird HTML characters
                 desc = str(ev.get('description') or '').replace('\\n', '<br>')
+                
                 d = start if isinstance(start, date) else start.astimezone(central).date()
 
                 if today <= d <= limit:
                     is_ad = not isinstance(start, datetime)
                     t_label = "ALL DAY" if is_ad else start.astimezone(central).strftime("%I:%M %p").lstrip("0")
                     
+                    # This HTML structure MUST have these classes for the index to see them
                     html = f'''
                     <div class="event-entry">
                         <div class="event-date-box">
