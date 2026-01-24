@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -20,7 +20,7 @@ jobs:
         run: pip install requests icalendar pytz
 
       - name: Run Update Script
-        # We point directly to your file name here
+        # Direct path to your organized file
         run: python update_news.py
 
       - name: Commit and Push Changes
