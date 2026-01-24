@@ -44,6 +44,11 @@
 
     <span class="section-label" style="margin-top:20px;">Upcoming Schedule</span>
     <div id="timed-events">
+        <div class="event-entry louisville-theme"><div class="event-date-box"><span class="event-day">24</span><span class="event-month">JAN</span></div><div class="event-info"><h4>North Clay Varsity Basketball</h4></div></div>
+        <div class="event-entry flora-theme"><div class="event-date-box"><span class="event-day">25</span><span class="event-month">JAN</span></div><div class="event-info"><h4>Library Sunday Series</h4></div></div>
+        <div class="event-entry clay-city-theme"><div class="event-date-box"><span class="event-day">26</span><span class="event-month">JAN</span></div><div class="event-info"><h4>Village Board Meeting</h4></div></div>
+        <div class="event-entry flora-theme"><div class="event-date-box"><span class="event-day">27</span><span class="event-month">JAN</span></div><div class="event-info"><h4>Town Hall: Infrastructure</h4></div></div>
+        
         <div id="bot-t-target"></div>
     </div>
 </div>
@@ -59,23 +64,26 @@
         "Clay County": { bg: "#ffffff", text: "#333333" }
     };
 
-    fetch('feed.html').then(r => r.text()).then(data => {
+    // Use a timestamp to prevent the browser from caching an old version of the feed
+    fetch('feed.html?t=' + Date.now()).then(r => r.text()).then(data => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(data, 'text/html');
         
         ['bot-ad-target', 'bot-t-target'].forEach(targetId => {
-            const feedSource = targetId === 'bot-ad-target' ? 'bot-ad-data' : 'bot-t-data';
-            const target = document.getElementById(targetId);
-            const sourceEl = doc.getElementById(feedSource);
+            const feedSourceId = targetId === 'bot-ad-target' ? 'bot-ad-data' : 'bot-t-data';
+            const targetDiv = document.getElementById(targetId);
+            const sourceEl = doc.getElementById(feedSourceId);
             
-            if (sourceEl) {
-                target.innerHTML = sourceEl.innerHTML;
-                target.querySelectorAll('.event-entry').forEach(entry => {
+            if (sourceEl && sourceEl.innerHTML.trim() !== "") {
+                targetDiv.innerHTML = sourceEl.innerHTML;
+                
+                // Color formatting for the NEW events
+                targetDiv.querySelectorAll('.event-entry').forEach(entry => {
                     const dateBox = entry.querySelector('.event-date-box');
-                    const infoText = entry.innerText; // Checks title, meta, and description
+                    const fullText = entry.innerText;
                     
                     for (const [town, colors] of Object.entries(townColors)) {
-                        if (infoText.includes(town)) {
+                        if (fullText.includes(town)) {
                             dateBox.style.backgroundColor = colors.bg;
                             dateBox.style.color = colors.text;
                             break;
@@ -84,7 +92,7 @@
                 });
             }
         });
-    }).catch(e => console.log("Feed loading..."));
+    }).catch(e => console.error("Error loading feed:", e));
 </script>
 
 </body>
