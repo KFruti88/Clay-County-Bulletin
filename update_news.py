@@ -15,43 +15,49 @@ CALENDAR_SOURCES = [
 ]
 
 # Initialize geolocator for coordinate-to-address conversion
-geolocator = Nominatim(user_agent="clay_county_bulletin")
+# The user_agent can be anything; it identifies your app to the service
+geolocator = Nominatim(user_agent="clay_county_safety_bulletin")
 
 def get_real_address(location_text):
-    """Smart location parser for Links, Coordinates, and Text."""
-    # 1. Handle Google Maps / Apple Maps Links
-    # This pattern catches various map link formats
+    """
+    Cleans up the location data.
+    - Turns Google/Apple Maps links into clean 'View Map' buttons.
+    - Turns raw GPS coordinates into street addresses (e.g., '123 Main St, Flora').
+    - Leaves local descriptions (e.g., 'Rail depo west side') as they are.
+    """
+    # 1. Look for Maps Links (Google or Apple)
     map_link_pattern = r'(https?://(?:www\.|maps\.)?(?:google\.com/maps|goo\.gl/maps|apple\.co/)\S+)'
     map_match = re.search(map_link_pattern, location_text)
     
     if map_match:
         link = map_match.group(1)
-        # We return a clickable button for the link
-        return f'📍 Map Link <a href="{link}" target="_blank" style="color: #eb1c24; text-decoration: underline;">Open in Maps</a>'
+        # We replace the long ugly link with a clean button
+        return f'📍 Shared Map Pin <a href="{link}" target="_blank" style="display:inline-block; padding: 2px 8px; background: #eb1c24; color: white; text-decoration: none; border-radius: 3px; font-size: 11px; margin-left: 5px;">View on Map</a>'
 
-    # 2. Handle Raw Lat/Long Coordinates
+    # 2. Look for Raw Coordinates (e.g., 38.66, -88.48)
     coord_pattern = r'(-?\d+\.\d+),\s*(-?\d+\.\d+)'
     coord_match = re.search(coord_pattern, location_text)
     
     if coord_match:
         lat, lon = coord_match.groups()
         try:
+            # Reverse Geocode: Turn numbers into a real address
             location = geolocator.reverse(f"{lat}, {lon}", timeout=10)
             if location:
-                # Returns "123 Main St, Flora"
+                # We split the address and only keep 'Street, City' to keep it concise
                 parts = location.address.split(',')
                 return f"📍 {parts[0].strip()}, {parts[1].strip()}"
         except:
-            pass # If geopy fails, fall through to raw text
+            pass # If look-up fails, it falls through to return the raw numbers
 
-    # 3. Handle Manual Text (e.g., "Rail depo west side of tracks")
-    # If it's not a link or coordinates, just return the text as is.
+    # 3. Handle local text (e.g., "Rail depo next to tracks")
+    # If no link or coordinates found, return exactly what was typed
     return location_text
 
 def fetch_safety_alerts():
     central = pytz.timezone('America/Chicago')
     now = datetime.now(central)
-    cutoff = now - timedelta(hours=24)
+    cutoff = now - timedelta(hours=24) # Only show last 24 hours of reports
     alert_html = ""
     
     try:
@@ -63,12 +69,13 @@ def fetch_safety_alerts():
             if not timestamp_str:
                 continue
                 
+            # Parse Google Sheets timestamp: 1/23/2026 21:10:05
             timestamp = datetime.strptime(timestamp_str, '%m/%d/%Y %H:%M:%S')
             timestamp = central.localize(timestamp)
             
             if timestamp > cutoff:
                 raw_loc = row.get('Where is it exactly?', 'Location TBD')
-                # Run the Smart Location parser
+                # Run our smart translator on the location
                 display_location = get_real_address(raw_loc)
 
                 alert_html += f'''
@@ -77,7 +84,7 @@ def fetch_safety_alerts():
                         <span class="event-meta" style="color: #eb1c24; font-weight: bold;">
                             ⚠️ {row.get('What is the hazard?', 'Hazard')} • {row.get('Town/City', 'Clay County')}
                         </span>
-                        <h4 style="margin: 5px 0;">{display_location}</h4>
+                        <h4 style="margin: 5px 0; font-family: 'Times New Roman', serif;">{display_location}</h4>
                         <div class="event-description">Reported: {timestamp.strftime('%I:%M %p')}</div>
                     </div>
                 </div>'''
@@ -88,7 +95,7 @@ def fetch_safety_alerts():
 def fetch_calendar_events():
     central = pytz.timezone('America/Chicago')
     today = datetime.now(central).date()
-    limit = today + timedelta(days=7)
+    limit = today + timedelta(days=7) # Look 1 week ahead
     all_day, timed = [], []
     seen = set()
 
@@ -132,9 +139,11 @@ def fetch_calendar_events():
     return "".join([e['html'] for e in all_day]), "".join([e['html'] for e in timed])
 
 if __name__ == "__main__":
+    # Get all data sets
     safety = fetch_safety_alerts()
     ad, t = fetch_calendar_events()
     
+    # Write to feed.html which index.html will then display
     with open("feed.html", "w", encoding="utf-8") as f:
         f.write(f'<div id="bot-safety-data">{safety}</div>')
         f.write(f'<div id="bot-ad-data">{ad}</div>')
