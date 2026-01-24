@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -20,16 +20,13 @@ jobs:
         run: pip install requests icalendar pytz
 
       - name: Run Update Script
-        run: |
-          # This finds the file no matter how many folders deep it is
-          SCRIPT_PATH=$(find . -name "update_bulletin.py" -type f -print -quit)
-          if [ -z "$SCRIPT_PATH" ]; then echo "Error: update_bulletin.py not found"; exit 1; fi
-          python "$SCRIPT_PATH"
+        # We point directly to your file name here
+        run: python update_news.py
 
       - name: Commit and Push Changes
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add .
+          git add index.html
           git commit -m "Automated Bulletin Update" || exit 0
           git push
