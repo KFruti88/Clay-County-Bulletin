@@ -4,6 +4,8 @@ from icalendar import Calendar
 from datetime import datetime, date, timedelta
 import pytz
 import io
+import re
+from geopy.geocoders import Nominatim
 
 # 1. SOURCES
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv"
@@ -11,6 +13,28 @@ CALENDAR_SOURCES = [
     "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics",
     "https://www.facebook.com/events/ical/upcoming/?uid=100063547844172&key=rjmOs5JdN9NQhByz"
 ]
+
+# Initialize geolocator
+geolocator = Nominatim(user_agent="clay_county_bulletin")
+
+def get_real_address(location_text):
+    """Converts coordinates to street addresses, or returns original text."""
+    # Pattern to find Lat/Long numbers
+    coord_pattern = r'(-?\d+\.\d+),\s*(-?\d+\.\d+)'
+    match = re.search(coord_pattern, location_text)
+    
+    if match:
+        lat, lon = match.groups()
+        try:
+            location = geolocator.reverse(f"{lat}, {lon}", timeout=10)
+            if location:
+                # Clean up the address string to just "Street, Town"
+                parts = location.address.split(',')
+                return f"{parts[0].strip()}, {parts[1].strip()}"
+        except:
+            pass # Fall through to return original text
+            
+    return location_text
 
 def fetch_safety_alerts():
     central = pytz.timezone('America/Chicago')
@@ -23,7 +47,6 @@ def fetch_safety_alerts():
         f = io.StringIO(r.text)
         reader = csv.DictReader(f)
         for row in reader:
-            # Format: 1/23/2026 21:10:05
             timestamp_str = row.get('Timestamp', '')
             if not timestamp_str:
                 continue
@@ -32,13 +55,17 @@ def fetch_safety_alerts():
             timestamp = central.localize(timestamp)
             
             if timestamp > cutoff:
+                # RUN THE ADDRESS FINDER HERE
+                raw_loc = row.get('Where is it exactly?', 'Location TBD')
+                display_location = get_real_address(raw_loc)
+
                 alert_html += f'''
                 <div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 10px; margin-bottom: 10px;">
                     <div class="event-info">
                         <span class="event-meta" style="color: #eb1c24; font-weight: bold;">
                             ⚠️ {row.get('What is the hazard?', 'Hazard')} • {row.get('Town/City', 'Clay County')}
                         </span>
-                        <h4 style="margin: 5px 0;">{row.get('Where is it exactly?', 'Location TBD')}</h4>
+                        <h4 style="margin: 5px 0;">{display_location}</h4>
                         <div class="event-description">Reported: {timestamp.strftime('%I:%M %p')}</div>
                     </div>
                 </div>'''
@@ -93,11 +120,9 @@ def fetch_calendar_events():
     return "".join([e['html'] for e in all_day]), "".join([e['html'] for e in timed])
 
 if __name__ == "__main__":
-    # Get all three data sets
     safety = fetch_safety_alerts()
     ad, t = fetch_calendar_events()
     
-    # Write them all into the single feed.html file
     with open("feed.html", "w", encoding="utf-8") as f:
         f.write(f'<div id="bot-safety-data">{safety}</div>')
         f.write(f'<div id="bot-ad-data">{ad}</div>')
