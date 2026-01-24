@@ -14,26 +14,38 @@ CALENDAR_SOURCES = [
     "https://www.facebook.com/events/ical/upcoming/?uid=100063547844172&key=rjmOs5JdN9NQhByz"
 ]
 
-# Initialize geolocator
+# Initialize geolocator for coordinate-to-address conversion
 geolocator = Nominatim(user_agent="clay_county_bulletin")
 
 def get_real_address(location_text):
-    """Converts coordinates to street addresses, or returns original text."""
-    # Pattern to find Lat/Long numbers
-    coord_pattern = r'(-?\d+\.\d+),\s*(-?\d+\.\d+)'
-    match = re.search(coord_pattern, location_text)
+    """Smart location parser for Links, Coordinates, and Text."""
+    # 1. Handle Google Maps / Apple Maps Links
+    # This pattern catches various map link formats
+    map_link_pattern = r'(https?://(?:www\.|maps\.)?(?:google\.com/maps|goo\.gl/maps|apple\.co/)\S+)'
+    map_match = re.search(map_link_pattern, location_text)
     
-    if match:
-        lat, lon = match.groups()
+    if map_match:
+        link = map_match.group(1)
+        # We return a clickable button for the link
+        return f'📍 Map Link <a href="{link}" target="_blank" style="color: #eb1c24; text-decoration: underline;">Open in Maps</a>'
+
+    # 2. Handle Raw Lat/Long Coordinates
+    coord_pattern = r'(-?\d+\.\d+),\s*(-?\d+\.\d+)'
+    coord_match = re.search(coord_pattern, location_text)
+    
+    if coord_match:
+        lat, lon = coord_match.groups()
         try:
             location = geolocator.reverse(f"{lat}, {lon}", timeout=10)
             if location:
-                # Clean up the address string to just "Street, Town"
+                # Returns "123 Main St, Flora"
                 parts = location.address.split(',')
-                return f"{parts[0].strip()}, {parts[1].strip()}"
+                return f"📍 {parts[0].strip()}, {parts[1].strip()}"
         except:
-            pass # Fall through to return original text
-            
+            pass # If geopy fails, fall through to raw text
+
+    # 3. Handle Manual Text (e.g., "Rail depo west side of tracks")
+    # If it's not a link or coordinates, just return the text as is.
     return location_text
 
 def fetch_safety_alerts():
@@ -55,8 +67,8 @@ def fetch_safety_alerts():
             timestamp = central.localize(timestamp)
             
             if timestamp > cutoff:
-                # RUN THE ADDRESS FINDER HERE
                 raw_loc = row.get('Where is it exactly?', 'Location TBD')
+                # Run the Smart Location parser
                 display_location = get_real_address(raw_loc)
 
                 alert_html += f'''
