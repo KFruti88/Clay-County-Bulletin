@@ -8,13 +8,6 @@ SOURCES = [
     "https://www.facebook.com/events/ical/upcoming/?uid=100063547844172&key=rjmOs5JdN9NQhByz"
 ]
 
-def get_town_class(summary, location):
-    text = f"{summary} {location}".lower()
-    if "flora" in text: return "flora-theme"
-    if "louisville" in text or "north clay" in text: return "louisville-theme"
-    if "clay city" in text: return "clay-city-theme"
-    return "default-theme"
-
 def fetch_events():
     central = pytz.timezone('America/Chicago')
     today = datetime.now(central).date()
@@ -29,14 +22,31 @@ def fetch_events():
             for ev in cal.walk('vevent'):
                 title = str(ev.get('summary'))
                 if title in seen: continue
+                
                 start = ev.get('dtstart').dt
                 loc = str(ev.get('location') or 'Clay County')
+                desc = str(ev.get('description') or '')
                 d = start if isinstance(start, date) else start.astimezone(central).date()
+
                 if today <= d <= limit:
                     is_ad = not isinstance(start, datetime)
                     t_label = "ALL DAY" if is_ad else start.astimezone(central).strftime("%I:%M %p").lstrip("0")
                     iso = (central.localize(datetime.combine(d, datetime.min.time())) if is_ad else start.astimezone(central)).strftime("%Y-%m-%dT%H:%M:%S%z")
-                    html = f'<div class="event-entry {get_town_class(title, loc)}" data-time="{iso}" data-all-day="{str(is_ad).lower()}"><div class="event-date-box"><span class="event-day">{d.strftime("%d")}</span><span class="event-month">{d.strftime("%b")}</span></div><div class="event-info"><span class="event-meta">{t_label} • {loc}</span><h4>{title}</h4></div></div>\n'
+                    
+                    # Included location and description here
+                    html = f'''
+                    <div class="event-entry" data-time="{iso}" data-all-day="{str(is_ad).lower()}">
+                        <div class="event-date-box">
+                            <span class="event-day">{d.strftime("%d")}</span>
+                            <span class="event-month">{d.strftime("%b")}</span>
+                        </div>
+                        <div class="event-info">
+                            <span class="event-meta">{t_label} • <span class="loc-text">{loc}</span></span>
+                            <h4>{title}</h4>
+                            <div class="event-description">{desc}</div>
+                        </div>
+                    </div>'''
+                    
                     sort_key = start if isinstance(start, datetime) else datetime.combine(start, datetime.min.time()).replace(tzinfo=pytz.utc)
                     (all_day if is_ad else timed).append({'html': html, 'sort': sort_key})
                     seen.add(title)
@@ -47,7 +57,5 @@ def fetch_events():
 
 if __name__ == "__main__":
     ad, t = fetch_events()
-    # Create a SEPARATE file so index.html remains untouched and safe
     with open("feed.html", "w", encoding="utf-8") as f:
         f.write(f'<div id="bot-ad-data">{ad}</div><div id="bot-t-data">{t}</div>')
-    print("Created feed.html - main index.html was NOT touched.")
