@@ -2,8 +2,6 @@ import requests
 from icalendar import Calendar
 from datetime import datetime, date, timedelta
 import pytz
-import os
-import re
 
 SOURCES = [
     "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics",
@@ -34,41 +32,22 @@ def fetch_events():
                 start = ev.get('dtstart').dt
                 loc = str(ev.get('location') or 'Clay County')
                 d = start if isinstance(start, date) else start.astimezone(central).date()
-
                 if today <= d <= limit:
                     is_ad = not isinstance(start, datetime)
                     t_label = "ALL DAY" if is_ad else start.astimezone(central).strftime("%I:%M %p").lstrip("0")
                     iso = (central.localize(datetime.combine(d, datetime.min.time())) if is_ad else start.astimezone(central)).strftime("%Y-%m-%dT%H:%M:%S%z")
-                    
                     html = f'<div class="event-entry {get_town_class(title, loc)}" data-time="{iso}" data-all-day="{str(is_ad).lower()}"><div class="event-date-box"><span class="event-day">{d.strftime("%d")}</span><span class="event-month">{d.strftime("%b")}</span></div><div class="event-info"><span class="event-meta">{t_label} • {loc}</span><h4>{title}</h4></div></div>\n'
-                    
                     sort_key = start if isinstance(start, datetime) else datetime.combine(start, datetime.min.time()).replace(tzinfo=pytz.utc)
                     (all_day if is_ad else timed).append({'html': html, 'sort': sort_key})
                     seen.add(title)
         except: continue
-
     all_day.sort(key=lambda x: x['sort'])
     timed.sort(key=lambda x: x['sort'])
     return "".join([e['html'] for e in all_day]), "".join([e['html'] for e in timed])
 
 if __name__ == "__main__":
     ad, t = fetch_events()
-    target = next((os.path.join(r, f) for r, d, fs in os.walk(".") for f in fs if f == "index.html"), "index.html")
-    
-    if os.path.exists(target):
-        with open(target, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # VALIDATION: If these are missing, we stop IMMEDIATELY to protect your progress
-        if all(marker in content for marker in ["", "", "", ""]):
-            # Update All Day Zone
-            content = re.sub(r".*?", f"\n{ad}", content, flags=re.DOTALL)
-            # Update Timed Zone
-            content = re.sub(r".*?", f"\n{t}", content, flags=re.DOTALL)
-            
-            with open(target, "w", encoding="utf-8") as f:
-                f.write(content)
-            print("Successfully updated automation zones. Manual progress preserved.")
-        else:
-            print("CRITICAL ERROR: Markers missing! Aborting to prevent data loss.")
-            exit(1)
+    # Create a SEPARATE file so index.html remains untouched and safe
+    with open("feed.html", "w", encoding="utf-8") as f:
+        f.write(f'<div id="bot-ad-data">{ad}</div><div id="bot-t-data">{t}</div>')
+    print("Created feed.html - main index.html was NOT touched.")
