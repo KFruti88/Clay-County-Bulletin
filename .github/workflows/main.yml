@@ -20,13 +20,12 @@ jobs:
         run: pip install requests icalendar pytz
 
       - name: Run Update Script
-        # Direct path to your organized file
         run: python update_news.py
 
       - name: Commit and Push Changes
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add index.html
-          git commit -m "Automated Bulletin Update" || exit 0
+          git add feed.html
+          git commit -m "Update Feed Data" || exit 0
           git push
