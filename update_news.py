@@ -16,65 +16,46 @@ def get_town_class(summary, location):
     if "clay city" in text: return "clay-city-theme"
     return "default-theme"
 
-def fetch_all_events():
+def fetch_events():
     central = pytz.timezone('America/Chicago')
-    now = datetime.now(central)
-    today = now.date()
-    limit_date = today + timedelta(days=7)
-    collected = []
-    seen_titles = set()
+    today = datetime.now(central).date()
+    limit = today + timedelta(days=7)
+    all_day, timed = [], []
+    seen = set()
 
     for url in SOURCES:
         try:
-            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
-            gcal = Calendar.from_ical(response.text)
-            for component in gcal.walk('vevent'):
-                summary = str(component.get('summary'))
-                if summary in seen_titles: continue
-                dtstart = component.get('dtstart').dt
-                location = str(component.get('location') or 'Clay County')
-                start_date = dtstart if isinstance(dtstart, date) else dtstart.astimezone(central).date()
+            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+            cal = Calendar.from_ical(r.text)
+            for ev in cal.walk('vevent'):
+                title = str(ev.get('summary'))
+                if title in seen: continue
+                start = ev.get('dtstart').dt
+                loc = str(ev.get('location') or 'Clay County')
+                d = start if isinstance(start, date) else start.astimezone(central).date()
 
-                if today <= start_date <= limit_date:
-                    is_all_day = not isinstance(dtstart, datetime)
-                    iso_time = (central.localize(datetime.combine(start_date, datetime.min.time())) if is_all_day 
-                                else dtstart.astimezone(central)).strftime("%Y-%m-%dT%H:%M:%S%z")
-                    time_label = "ALL DAY" if is_all_day else dtstart.astimezone(central).strftime("%I:%M %p").lstrip("0")
+                if today <= d <= limit:
+                    is_ad = not isinstance(start, datetime)
+                    t_label = "ALL DAY" if is_ad else start.astimezone(central).strftime("%I:%M %p").lstrip("0")
+                    iso = (central.localize(datetime.combine(d, datetime.min.time())) if is_ad else start.astimezone(central)).strftime("%Y-%m-%dT%H:%M:%S%z")
+                    
+                    html = f'<div class="event-entry {get_town_class(title, loc)}" data-time="{iso}" data-all-day="{str(is_ad).lower()}"><div class="event-date-box"><span class="event-day">{d.strftime("%d")}</span><span class="event-month">{d.strftime("%b")}</span></div><div class="event-info"><span class="event-meta">{t_label} • {loc}</span><h4>{title}</h4></div></div>\n'
+                    
+                    sort_key = start if isinstance(start, datetime) else datetime.combine(start, datetime.min.time()).replace(tzinfo=pytz.utc)
+                    (all_day if is_ad else timed).append({'html': html, 'sort': sort_key})
+                    seen.add(title)
+        except: continue
 
-                    html = f'<div class="event-entry {get_town_class(summary, location)}" data-time="{iso_time}" data-all-day="{str(is_all_day).lower()}"><div class="event-date-box"><span class="event-day">{start_date.strftime("%d")}</span><span class="event-month">{start_date.strftime("%b")}</span></div><div class="event-info"><span class="event-meta">{time_label} • {location}</span><h4>{summary}</h4></div></div>\n'
-                    sort_val = dtstart if isinstance(dtstart, datetime) else datetime.combine(dtstart, datetime.min.time()).replace(tzinfo=pytz.utc)
-                    collected.append({'is_all_day': is_all_day, 'html': html, 'sort': sort_val})
-                    seen_titles.add(summary)
-        except Exception as e:
-            print(f"Error fetching {url}: {e}")
-
-    collected.sort(key=lambda x: x['sort'])
-    return "".join([e['html'] for e in collected if e['is_all_day']]), "".join([e['html'] for e in collected if not e['is_all_day']])
+    all_day.sort(key=lambda x: x['sort'])
+    timed.sort(key=lambda x: x['sort'])
+    return "".join([e['html'] for e in all_day]), "".join([e['html'] for e in timed])
 
 if __name__ == "__main__":
-    ad_html, t_html = fetch_all_events()
-    
-    # Find the HTML file
-    target = next((os.path.join(r, f) for r, d, fs in os.walk(".") for f in fs if f == "index.html"), "index.html")
-    
-    if os.path.exists(target):
-        with open(target, "r", encoding="utf-8") as f:
-            full_text = f.read()
-
-        try:
-            # STEP 1: Handle All Day Events
-            pre_ad, rest = full_text.split("")
-            _, post_ad = rest.split("")
-            new_content = pre_ad + "\n" + ad_html + "" + post_ad
-
-            # STEP 2: Handle Timed Events
-            pre_t, rest_t = new_content.split("")
-            _, post_t = rest_t.split("")
-            final_content = pre_t + "\n" + t_html + "" + post_t
-
-            with open(target, "w", encoding="utf-8") as f:
-                f.write(final_content)
-            print("Successfully updated.")
-        except ValueError:
-            print("CRITICAL ERROR: Markers (START/END) are missing from index.html. No changes saved.")
-            exit(1)
+    ad, t = fetch_events()
+    if os.path.exists("index.html"):
+        with open("index.html", "r") as f: content = f.read()
+        if "" in content and "" in content:
+            new = content.split("")[0] + "\n" + ad + "" + content.split("")[1]
+            new = new.split("")[0] + "\n" + t + "" + new.split("")[1]
+            with open("index.html", "w") as f: f.write(new)
+            print("Done.")
