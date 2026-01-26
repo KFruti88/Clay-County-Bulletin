@@ -19,19 +19,17 @@
         .event-meta { font-size: 11px; text-transform: uppercase; display: block; color: #666; font-weight: bold; margin-bottom: 5px; }
         .report-link { display: block; text-align: center; padding: 10px; border: 1px dashed #eb1c24; color: #eb1c24; text-decoration: none; font-weight: bold; font-size: 13px; margin-top: 10px; }
         
-        /* Town Colors */
-        .flora-theme .event-date-box { background-color: #fe4f00; color: #0c0b82; }
-        .louisville-theme .event-date-box { background-color: #eb1c24; color: #010101; }
-        .clay-city-theme .event-date-box { background-color: #8a8a88; color: #0c30f0; }
-
-        @media (max-width: 600px) { .clay-county-news-box { width: 95%; } }
+        /* Town Themes */
+        .flora-theme .event-date-box { background-color: #fe4f00 !important; color: #0c0b82 !important; }
+        .louisville-theme .event-date-box { background-color: #eb1c24 !important; color: #010101 !important; }
+        .clay-city-theme .event-date-box { background-color: #8a8a88 !important; color: #0c30f0 !important; }
     </style>
 </head>
 <body>
 
 <div class="clay-county-news-box">
     <div class="calendar-header">
-        <h2 style="text-align:center; font-family: 'Times New Roman', serif; text-transform: uppercase; margin: 0;">Clay County Bulletin</h2>
+        <h2 style="font-family: 'Times New Roman', serif; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 24px;">Clay County Bulletin</h2>
     </div>
 
     <span class="section-label" style="color: #eb1c24; border-bottom: 2px solid #eb1c24;">Public Safety Alerts</span>
@@ -55,13 +53,13 @@
             if (cols.length > 1) {
                 const entryTime = new Date(cols[0]).getTime();
                 if ((now - entryTime) < (24 * 60 * 60 * 1000)) {
-                    html += `<div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 10px;">
+                    html += `<div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 10px; margin-bottom:10px;">
                         <div class="event-info"><span class="event-meta" style="color:#eb1c24;">⚠️ ${cols[1]}</span><h4>${cols[2]}</h4></div>
                     </div>`;
                 }
             }
         });
-        document.getElementById('safety-target').innerHTML = html || "<p style='font-size:12px; color:#999;'>No active alerts.</p>";
+        document.getElementById('safety-target').innerHTML = html || "<p style='font-size:12px; color:#999; font-style:italic;'>No active alerts for today.</p>";
     });
 </script>
 </body>
