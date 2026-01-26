@@ -6,105 +6,80 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Clay County Bulletin | Live Events</title>
+    <title>Clay County Bulletin | Live Sync</title>
     <style>
-        /* Base Styling & Standards */
         body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
         
-        .clay-county-news-box.calendar-bulletin { 
+        .clay-county-news-box { 
             width: 90%; 
             max-width: 500px; 
             margin: 20px auto; 
-            padding: 25px; 
+            padding: 20px; 
             border: 1px solid #222; 
             background-color: #fffdf5; 
             box-shadow: 6px 6px 0px #222; 
-            text-align: left; 
         }
 
-        .calendar-header { text-align: center; border-top: 4px solid #222; border-bottom: 2px solid #222; padding: 10px 0; margin-bottom: 20px; }
-        .section-label { font-family: "Times New Roman", serif; font-weight: bold; text-transform: uppercase; font-size: 12px; color: #666; margin-bottom: 10px; border-bottom: 1px solid #ccc; display: block; }
+        .calendar-header { text-align: center; border-top: 4px solid #222; border-bottom: 2px solid #222; padding: 10px 0; margin-bottom: 15px; }
+        .section-label { font-family: "Times New Roman", serif; font-weight: bold; text-transform: uppercase; font-size: 11px; color: #666; margin-bottom: 8px; border-bottom: 1px solid #ccc; display: block; }
         
+        /* Safety Feed - Constrained so it doesn't push events down too far */
+        #safety-feed { max-height: 250px; overflow-y: auto; margin-bottom: 15px; }
+
         /* Event Entry Styling */
-        .event-entry { display: flex; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #999; }
-        .event-date-box { min-width: 70px; text-align: center; padding: 10px 5px; margin-right: 20px; height: fit-content; border: 1px solid #222; background-color: #eee; }
-        .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
-        .event-month { font-size: 11px; text-transform: uppercase; font-weight: bold; }
-        .event-info h4 { font-family: "Times New Roman", serif !important; font-size: 18px !important; margin: 0 !important; color: #222 !important; font-weight: bold; }
-        .event-meta { font-size: 11px; text-transform: uppercase; display: block; color: #666; font-weight: bold; margin-bottom: 5px; }
+        .event-entry { display: flex; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #999; align-items: center; }
+        .event-date-box { min-width: 60px; text-align: center; padding: 8px 4px; margin-right: 15px; border: 1px solid #222; background: #eee; }
+        .event-day { font-size: 20px; font-weight: bold; display: block; line-height: 1; }
+        .event-month { font-size: 10px; text-transform: uppercase; font-weight: bold; }
         
-        /* Safety Alert Styling */
-        .report-link { display: block; text-align: center; padding: 10px; border: 1px dashed #eb1c24; color: #eb1c24; text-decoration: none; font-weight: bold; font-size: 13px; margin-top: 10px; }
-        .report-link:hover { background-color: #fff5f5; }
+        .event-info h4 { font-family: "Times New Roman", serif; font-size: 16px; margin: 0; color: #222; font-weight: bold; }
+        .event-meta { font-size: 10px; text-transform: uppercase; display: block; color: #666; font-weight: bold; }
 
-        /* Mobile Stacking per Standards */
-        @media (max-width: 600px) {
-            .clay-county-news-box.calendar-bulletin { width: 95%; padding: 15px; }
-            .event-entry { flex-direction: row; } /* Keep horizontal for date box visibility */
-        }
+        /* Town Themes */
+        .flora-theme .event-date-box { background-color: #fe4f00 !important; color: #0c0b82 !important; }
+        .louisville-theme .event-date-box { background-color: #eb1c24 !important; color: #010101 !important; }
+        .clay-city-theme .event-date-box { background-color: #8a8a88 !important; color: #0c30f0 !important; }
+
+        .report-link { display: block; text-align: center; padding: 8px; border: 1px dashed #eb1c24; color: #eb1c24; text-decoration: none; font-weight: bold; font-size: 12px; margin-top: 5px; }
+
+        @media (max-width: 600px) { .clay-county-news-box { width: 95%; } }
     </style>
 </head>
 <body>
 
-<div class="clay-county-news-box calendar-bulletin">
+<div class="clay-county-news-box">
     <div class="calendar-header">
-        <h2 style="font-family: 'Times New Roman', serif; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 24px; color: #222;">Clay County Bulletin</h2>
+        <h2 style="font-family: 'Times New Roman', serif; font-weight: 900; text-transform: uppercase; margin: 0; font-size: 22px;">Clay County Bulletin</h2>
     </div>
 
-    <span class="section-label" style="color: #eb1c24; border-bottom: 2px solid #eb1c24;">Public Safety Alerts</span>
+    <span class="section-label" style="color: #eb1c24; border-bottom: 2px solid #eb1c24;">Live Safety Alerts</span>
     <div id="safety-feed">
         <div id="bot-safety-target"></div>
-        <a href="https://forms.gle/MTx4rePosdFDbfgx9" target="_blank" class="report-link">⚠️ Report a Hazard (Downed Trees, Wrecks, Flooding)</a>
     </div>
+    <a href="https://forms.gle/MTx4rePosdFDbfgx9" target="_blank" class="report-link">⚠️ Report a Hazard</a>
 
-    <span class="section-label" style="margin-top:25px;">Community Bulletins</span>
-    <div id="all-day-events">
-        <div id="bot-ad-target"></div>
-    </div>
-
-    <span class="section-label" style="margin-top:20px;">Upcoming Schedule (Live)</span>
+    <span class="section-label" style="margin-top:20px;">Upcoming Schedule (Live Sync)</span>
     <div id="timed-events">
-        <p style="font-size: 13px; color: #666; font-style: italic;">Syncing with Google Calendar...</p>
         </div>
 </div>
 
 <script>
-    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv";
+    // Fetch safety alerts from your sheet
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv";
     
-    // FETCH SAFETY ALERTS FROM GOOGLE SHEET
-    fetch(SHEET_CSV_URL)
-        .then(response => response.text())
-        .then(csvText => {
-            const lines = csvText.split('\n');
-            let html = "";
-            const cutoff = Date.now() - (24 * 60 * 60 * 1000); 
-
-            for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',');
-                if (cols.length < 2) continue;
-
-                const timestamp = new Date(cols[0]).getTime();
-                if (timestamp > cutoff) {
-                    const hazard = cols[1];
-                    const location = cols[2] || "N/A";
-                    const town = cols[3] || "Clay County";
-                    
-                    let displayLoc = location;
-                    if (location.includes("http")) {
-                        displayLoc = `${location.split('http')[0]} <br> <a href="http${location.split('http')[1]}" target="_blank" style="display:inline-block; padding: 5px 10px; background: #eb1c24; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; margin-top: 5px;">📍 Open in Maps</a>`;
-                    }
-
-                    html += `
-                    <div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 10px; margin-bottom: 10px;">
-                        <div class="event-info">
-                            <span class="event-meta" style="color: #eb1c24; font-weight: bold;">⚠️ ${hazard} • ${town}</span>
-                            <h4 style="margin: 5px 0;">${displayLoc}</h4>
-                        </div>
-                    </div>`;
-                }
+    fetch(SHEET_URL).then(r => r.text()).then(csv => {
+        const rows = csv.split('\n').slice(1);
+        let html = "";
+        rows.forEach(row => {
+            const cols = row.split(',');
+            if(cols.length > 1) {
+                html += `<div style="font-size:13px; margin-bottom:8px; padding-left:5px; border-left:3px solid #eb1c24;">
+                            <strong>${cols[1]}</strong><br><small>${cols[3] || 'Clay County'}</small>
+                         </div>`;
             }
-            document.getElementById('bot-safety-target').innerHTML = html || "<p style='font-size:12px; color:#666;'>No active alerts in the last 24 hours.</p>";
         });
+        document.getElementById('bot-safety-target').innerHTML = html || "No current alerts.";
+    });
 </script>
 
 </body>
