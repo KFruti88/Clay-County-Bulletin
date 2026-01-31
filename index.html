@@ -12,13 +12,10 @@
             width: 100% !important; 
             max-width: 100% !important; 
             margin: 0 !important; 
-            padding: 0 !important; /* This stops the internal cutting off */
+            padding: 0 !important;
             border: none !important; 
-            background-color: #fcf6de; /* Your background color */
-            box-shadow: none !important; /* Shadow should be on the Divi Row, not here */
+            background-color: #fcf6de; 
             font-family: Arial, sans-serif; 
-            height: auto !important;
-            min-height: 100% !important;
             overflow: visible !important;
             display: block !important;
         }
@@ -58,7 +55,7 @@
         }
 
         .event-date-box { 
-            min-width: 75px; 
+            min-width: 80px; 
             text-align: center; 
             padding: 10px 5px; 
             margin-right: 20px; 
@@ -125,8 +122,8 @@
 </div>
 
 <script>
-    const SAFETY_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv";
-    const CALENDAR_ICS_URL = "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics";
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv";
+    const ICS_URL = "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics";
 
     const townColors = {
         "Flora": { bg: "#0c0b82", text: "#fe4f00" },
@@ -137,63 +134,90 @@
         "Clay County": { bg: "#333333", text: "#ffffff" }
     };
 
-    async function loadSafetyAlerts() {
-        try {
-            const response = await fetch(SAFETY_SHEET_URL);
-            const csv = await response.text();
-            const rows = csv.split('\n').slice(1);
-            let html = "";
-            const cutoff = new Date().getTime() - (24 * 60 * 60 * 1000);
+    // Safe CSV Parser to handle commas inside fields
+    function parseCSVLine(line) {
+        const result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let char of line) {
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) {
+                result.push(cur.trim());
+                cur = '';
+            } else cur += char;
+        }
+        result.push(cur.trim());
+        return result;
+    }
 
-            rows.forEach(row => {
-                const cols = row.split(',');
-                if (cols.length > 1) {
-                    const time = new Date(cols[0]).getTime();
-                    if (time > cutoff) {
+    async function loadSafety() {
+        try {
+            const res = await fetch(SHEET_URL);
+            const text = await res.text();
+            const lines = text.split(/\r?\n/).slice(1);
+            let html = "";
+            const now = new Date().getTime();
+            const oneDay = 24 * 60 * 60 * 1000;
+
+            lines.forEach(line => {
+                const cols = parseCSVLine(line);
+                if (cols.length >= 2 && cols[0]) {
+                    const timestamp = new Date(cols[0]);
+                    if ((now - timestamp.getTime()) < oneDay) {
+                        const hazard = cols[1] || "Safety Alert";
+                        const town = cols[2] || "Clay County";
                         html += `<div class="safety-alert-card">
-                            <h3 style="margin:0; color:#eb1c24;">⚠️ ${cols[1].toUpperCase()}</h3>
-                            <div style="font-weight:bold; margin:5px 0;">📍 ${cols[3]}</div>
-                            <div style="font-size:11px; color:#666;">Reported: ${new Date(cols[0]).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                            <h3 style="margin:0; color:#eb1c24;">⚠️ ${hazard.toUpperCase()}</h3>
+                            <div style="font-weight:bold; margin:5px 0;">Town: ${town}</div>
+                            <div style="font-size:11px; color:#666;">Reported: ${timestamp.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                         </div>`;
                     }
                 }
             });
-            document.getElementById('safety-target').innerHTML = html || "<p style='font-size:12px; color:#999;'>No active alerts.</p>";
+            document.getElementById('safety-target').innerHTML = html || "<p style='font-size:12px; color:#999;'>No active alerts for the last 24 hours.</p>";
         } catch (e) { console.error(e); }
     }
 
     async function loadCalendar() {
         try {
             const proxy = "https://api.allorigins.win/raw?url=";
-            const response = await fetch(proxy + encodeURIComponent(CALENDAR_ICS_URL));
-            const data = await response.text();
+            const res = await fetch(proxy + encodeURIComponent(ICS_URL));
+            const data = await res.text();
             
-            // Initial Parse
-            const allEvents = parseICS(data);
+            const events = [];
+            const lines = data.split(/\r?\n/);
+            let cur = null;
             
-            // Filter out past events, sort by date, then grab up to 5
-            const sorted = allEvents
+            lines.forEach(l => {
+                if(l.startsWith("BEGIN:VEVENT")) cur = {};
+                else if(l.startsWith("END:VEVENT")) { if(cur && cur.start) events.push(cur); cur = null; }
+                else if(cur) {
+                    if(l.startsWith("SUMMARY:")) cur.summary = l.substring(8).trim();
+                    if(l.startsWith("LOCATION:")) cur.location = l.substring(9).trim();
+                    if(l.startsWith("DTSTART")) {
+                        const dStr = l.split(":")[1];
+                        if(dStr) cur.start = new Date(dStr.substring(0,4), dStr.substring(4,6)-1, dStr.substring(6,8));
+                    }
+                }
+            });
+
+            const upcoming = events
                 .filter(ev => ev.start >= new Date().setHours(0,0,0,0))
-                .sort((a, b) => a.start - b.start);
-            
-            const displayEvents = sorted.length > 5 ? sorted.slice(0, 5) : sorted;
+                .sort((a, b) => a.start - b.start)
+                .slice(0, 5);
 
             let html = "";
-            displayEvents.forEach(ev => {
+            upcoming.forEach(ev => {
                 const date = new Date(ev.start);
-                const comboText = (ev.summary + " " + (ev.location || "")).toLowerCase();
-                
-                let style = `background-color: ${townColors["Clay County"].bg}; color: ${townColors["Clay County"].text};`;
-                
-                for (const town in townColors) {
-                    if (comboText.includes(town.toLowerCase())) {
-                        style = `background-color: ${townColors[town].bg}; color: ${townColors[town].text};`;
-                        break;
-                    }
+                const search = (ev.summary + " " + (ev.location || "")).toLowerCase();
+                let theme = townColors["Clay County"];
+
+                for (const t in townColors) {
+                    if (search.includes(t.toLowerCase())) { theme = townColors[t]; break; }
                 }
 
                 html += `<div class="event-entry">
-                    <div class="event-date-box" style="${style}">
+                    <div class="event-date-box" style="background-color:${theme.bg}; color:${theme.text};">
                         <span class="event-month">${date.toLocaleString('en-US', {month:'short'})}</span>
                         <span class="event-day">${date.getDate()}</span>
                     </div>
@@ -203,51 +227,19 @@
                     </div>
                 </div>`;
             });
-            
-            document.getElementById('calendar-target').innerHTML = html || "<p style='font-size:12px; color:#999;'>No upcoming events scheduled.</p>";
-        } catch (e) { 
-            console.error(e);
-            document.getElementById('calendar-target').innerHTML = "<p style='font-size:12px; color:red;'>Calendar sync error.</p>";
-        }
+            document.getElementById('calendar-target').innerHTML = html || "No upcoming events.";
+        } catch (e) { console.error(e); }
     }
 
-    function parseICS(data) {
-        const events = [];
-        const lines = data.split(/\r?\n/);
-        let cur = null;
-        lines.forEach(l => {
-            if(l.startsWith("BEGIN:VEVENT")) cur = {};
-            else if(l.startsWith("END:VEVENT")) { 
-                if(cur && cur.start) events.push(cur); 
-                cur = null; 
-            }
-            else if(cur) {
-                if(l.startsWith("SUMMARY:")) cur.summary = l.substring(8).trim();
-                if(l.startsWith("LOCATION:")) cur.location = l.substring(9).trim();
-                if(l.startsWith("DTSTART")) {
-                    const dStr = l.split(":")[1];
-                    if(dStr) {
-                        cur.start = new Date(dStr.substring(0,4), dStr.substring(4,6)-1, dStr.substring(6,8));
-                    }
-                }
-            }
-        });
-        return events;
-    }
-
-    loadSafetyAlerts();
+    loadSafety();
     loadCalendar();
-</script>
 
-<script>
-    /* This sends the height of this page to the parent site (ourflora.com) */
     function sendHeight() {
-        const height = document.body.scrollHeight;
-        window.parent.postMessage({ 'height': height }, "*");
+        const h = document.body.scrollHeight;
+        window.parent.postMessage({ 'height': h }, "*");
     }
     window.onload = sendHeight;
     window.onresize = sendHeight;
 </script>
-    
 </body>
 </html>
