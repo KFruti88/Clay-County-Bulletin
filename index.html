@@ -9,14 +9,24 @@
     <title>Clay County Bulletin</title>
     <style>
         .clay-county-news-box { 
-            width: 90%; 
+            width: 95%; 
             max-width: 500px; 
             margin: 20px auto; 
             padding: 25px; 
             border: none; 
-            background-color: transparent; 
+    
+            /* Change 1: Add a background color so the shadow works correctly */
+            background-color: #fffdf5; 
+    
+            /* Change 2: The Shadow (Optional: remove if it still feels "cut off") */
             box-shadow: 6px 6px 0px #222; 
+    
             font-family: Arial, sans-serif; 
+    
+            /* Change 3: Force the box to expand to fit all content */
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
         }
         
         .calendar-header { 
