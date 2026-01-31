@@ -1,5 +1,0 @@
----
-deployment:
-  tasks:
-    - export DEPLOYPATH=/home/kvent397/public_html/ourflora/bulletin/
-    - /bin/cp -R * $DEPLOYPATH
