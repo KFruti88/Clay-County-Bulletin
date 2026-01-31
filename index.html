@@ -235,5 +235,15 @@
     loadCalendar();
 </script>
 
+<script>
+    /* This sends the height of this page to the parent site (ourflora.com) */
+    function sendHeight() {
+        const height = document.body.scrollHeight;
+        window.parent.postMessage({ 'height': height }, "*");
+    }
+    window.onload = sendHeight;
+    window.onresize = sendHeight;
+</script>
+    
 </body>
 </html>
