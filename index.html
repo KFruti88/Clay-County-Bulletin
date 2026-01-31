@@ -8,7 +8,6 @@
     <meta http-equiv="Expires" content="0">
     <title>Clay County Bulletin</title>
     <style>
-        /* Base Container - 90% Width as per standards */
         .clay-county-news-box { 
             width: 90%; 
             max-width: 500px; 
@@ -39,7 +38,6 @@
             display: block; 
         }
 
-        /* Safety Alert Card */
         .safety-alert-card {
             border-left: 10px solid #eb1c24; 
             background: #fff5f5; 
@@ -48,7 +46,6 @@
             border-radius: 4px;
         }
 
-        /* Calendar Entry Styling */
         .event-entry { 
             display: flex; 
             margin-bottom: 15px; 
@@ -57,31 +54,28 @@
         }
 
         .event-date-box { 
-            min-width: 70px; 
+            min-width: 75px; 
             text-align: center; 
             padding: 10px 5px; 
             margin-right: 20px; 
             border: 1px solid #222; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
-        .event-month { font-size: 11px; text-transform: uppercase; font-weight: bold; }
+        .event-day { font-size: 24px; font-weight: bold; line-height: 1; }
+        .event-month { font-size: 12px; text-transform: uppercase; font-weight: bold; }
 
         .event-info h4 { font-family: "Times New Roman", serif; font-size: 18px; margin: 0; color: #222; font-weight: bold; }
         .event-meta { font-size: 11px; text-transform: uppercase; display: block; color: #666; font-weight: bold; margin-bottom: 5px; }
-
-        /* Color Lock Themes */
-        .theme-flora { background-color: #fe4f00 !important; color: #0c0b82 !important; }
-        .theme-louisville { background-color: #eb1c24 !important; color: #010101 !important; }
-        .theme-clay-city { background-color: #8a8a88 !important; color: #0c30f0 !important; }
-        .theme-default { background-color: #333333 !important; color: #ffffff !important; }
 
         .amazon-deal-link {
             display: block;
             text-align: center;
             background: #f0c14b;
             color: #111;
-            padding: 10px;
+            padding: 12px;
             text-decoration: none;
             font-weight: bold;
             border-radius: 3px;
@@ -89,9 +83,21 @@
             border: 1px solid #a88734;
         }
 
+        .report-link { 
+            display: block; 
+            text-align: center; 
+            padding: 10px; 
+            border: 1px dashed #eb1c24; 
+            color: #eb1c24; 
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 13px; 
+            margin-top: 10px; 
+        }
+
         @media (max-width: 480px) {
             .event-entry { flex-direction: column; }
-            .event-date-box { margin-bottom: 10px; width: fit-content; }
+            .event-date-box { margin-bottom: 10px; width: fit-content; min-width: 100px; }
         }
     </style>
 </head>
@@ -104,9 +110,10 @@
 
     <span class="section-label" style="color: #eb1c24; border-bottom: 2px solid #eb1c24;">Public Safety Alerts</span>
     <div id="safety-target"></div>
+    <a href="https://forms.gle/MTx4rePosdFDbfgx9" target="_blank" class="report-link">⚠️ Report a Hazard</a>
 
     <a href="https://www.amazon.com/b?node=120697190011&tag=werewolf3788-20" target="_blank" class="amazon-deal-link">
-        🛒 View Today's Trending Inspiration Deals
+        🛒 View Trending Inspiration Deals
     </a>
 
     <span class="section-label">Upcoming Schedule</span>
@@ -116,6 +123,15 @@
 <script>
     const SAFETY_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv";
     const CALENDAR_ICS_URL = "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics";
+
+    const townColors = {
+        "Flora": { bg: "#0c0b82", text: "#fe4f00" },
+        "Louisville": { bg: "#010101", text: "#eb1c24" },
+        "Clay City": { bg: "#8a8a88", text: "#0c30f0" },
+        "Xenia": { bg: "#000000", text: "#fdb813" },
+        "Sailor Springs": { bg: "#000000", text: "#a020f0" },
+        "Clay County": { bg: "#333333", text: "#ffffff" }
+    };
 
     async function loadSafetyAlerts() {
         try {
@@ -139,7 +155,7 @@
                 }
             });
             document.getElementById('safety-target').innerHTML = html || "<p style='font-size:12px; color:#999;'>No active alerts.</p>";
-        } catch (e) { console.log(e); }
+        } catch (e) { console.error("Safety Error:", e); }
     }
 
     async function loadCalendar() {
@@ -149,7 +165,6 @@
             const data = await response.text();
             const events = parseICS(data);
             
-            // FILTER: Future events only | SORT: Soonest first | SLICE: Top 5 only
             const displayEvents = events
                 .filter(e => e.start >= new Date().setHours(0,0,0,0))
                 .sort((a, b) => a.start - b.start)
@@ -158,13 +173,21 @@
             let html = "";
             displayEvents.forEach(ev => {
                 const date = new Date(ev.start);
-                const summary = ev.summary.toLowerCase();
-                const townClass = summary.includes("flora") ? "theme-flora" : 
-                                  summary.includes("louisville") ? "theme-louisville" : 
-                                  summary.includes("clay city") ? "theme-clay-city" : "theme-default";
+                const comboText = (ev.summary + " " + (ev.location || "")).toLowerCase();
+                
+                // Default to Clay County colors
+                let style = `background-color: ${townColors["Clay County"].bg}; color: ${townColors["Clay County"].text};`;
+                
+                // Match Town Branding
+                for (const town in townColors) {
+                    if (comboText.includes(town.toLowerCase())) {
+                        style = `background-color: ${townColors[town].bg}; color: ${townColors[town].text};`;
+                        break;
+                    }
+                }
 
                 html += `<div class="event-entry">
-                    <div class="event-date-box ${townClass}">
+                    <div class="event-date-box" style="${style}">
                         <span class="event-month">${date.toLocaleString('en-US', {month:'short'})}</span>
                         <span class="event-day">${date.getDate()}</span>
                     </div>
@@ -175,7 +198,7 @@
                 </div>`;
             });
             document.getElementById('calendar-target').innerHTML = html || "No upcoming events.";
-        } catch (e) { console.log(e); }
+        } catch (e) { console.error("Calendar Error:", e); }
     }
 
     function parseICS(data) {
