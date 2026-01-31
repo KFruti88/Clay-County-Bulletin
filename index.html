@@ -155,7 +155,7 @@
                 }
             });
             document.getElementById('safety-target').innerHTML = html || "<p style='font-size:12px; color:#999;'>No active alerts.</p>";
-        } catch (e) { console.error("Safety Error:", e); }
+        } catch (e) { console.error(e); }
     }
 
     async function loadCalendar() {
@@ -163,22 +163,24 @@
             const proxy = "https://api.allorigins.win/raw?url=";
             const response = await fetch(proxy + encodeURIComponent(CALENDAR_ICS_URL));
             const data = await response.text();
-            const events = parseICS(data);
             
-            const displayEvents = events
-                .filter(e => e.start >= new Date().setHours(0,0,0,0))
-                .sort((a, b) => a.start - b.start)
-                .slice(0, 5);
+            // Initial Parse
+            const allEvents = parseICS(data);
+            
+            // Filter out past events, sort by date, then grab up to 5
+            const sorted = allEvents
+                .filter(ev => ev.start >= new Date().setHours(0,0,0,0))
+                .sort((a, b) => a.start - b.start);
+            
+            const displayEvents = sorted.length > 5 ? sorted.slice(0, 5) : sorted;
 
             let html = "";
             displayEvents.forEach(ev => {
                 const date = new Date(ev.start);
                 const comboText = (ev.summary + " " + (ev.location || "")).toLowerCase();
                 
-                // Default to Clay County colors
                 let style = `background-color: ${townColors["Clay County"].bg}; color: ${townColors["Clay County"].text};`;
                 
-                // Match Town Branding
                 for (const town in townColors) {
                     if (comboText.includes(town.toLowerCase())) {
                         style = `background-color: ${townColors[town].bg}; color: ${townColors[town].text};`;
@@ -197,8 +199,12 @@
                     </div>
                 </div>`;
             });
-            document.getElementById('calendar-target').innerHTML = html || "No upcoming events.";
-        } catch (e) { console.error("Calendar Error:", e); }
+            
+            document.getElementById('calendar-target').innerHTML = html || "<p style='font-size:12px; color:#999;'>No upcoming events scheduled.</p>";
+        } catch (e) { 
+            console.error(e);
+            document.getElementById('calendar-target').innerHTML = "<p style='font-size:12px; color:red;'>Calendar sync error.</p>";
+        }
     }
 
     function parseICS(data) {
@@ -207,13 +213,18 @@
         let cur = null;
         lines.forEach(l => {
             if(l.startsWith("BEGIN:VEVENT")) cur = {};
-            else if(l.startsWith("END:VEVENT")) { events.push(cur); cur = null; }
+            else if(l.startsWith("END:VEVENT")) { 
+                if(cur && cur.start) events.push(cur); 
+                cur = null; 
+            }
             else if(cur) {
-                if(l.startsWith("SUMMARY:")) cur.summary = l.substring(8);
-                if(l.startsWith("LOCATION:")) cur.location = l.substring(9);
+                if(l.startsWith("SUMMARY:")) cur.summary = l.substring(8).trim();
+                if(l.startsWith("LOCATION:")) cur.location = l.substring(9).trim();
                 if(l.startsWith("DTSTART")) {
-                    const d = l.split(":")[1];
-                    cur.start = new Date(d.substring(0,4), d.substring(4,6)-1, d.substring(6,8));
+                    const dStr = l.split(":")[1];
+                    if(dStr) {
+                        cur.start = new Date(dStr.substring(0,4), dStr.substring(4,6)-1, dStr.substring(6,8));
+                    }
                 }
             }
         });
