@@ -8,21 +8,93 @@
     <meta http-equiv="Expires" content="0">
     <title>Clay County Bulletin</title>
     <style>
-        .clay-county-news-box { width: 90%; max-width: 500px; margin: 20px auto; padding: 25px; border: 1px solid #222; background-color: #fffdf5; box-shadow: 6px 6px 0px #222; font-family: Arial, sans-serif; }
-        .calendar-header { text-align: center; border-top: 4px solid #222; border-bottom: 2px solid #222; padding: 10px 0; margin-bottom: 20px; }
-        .section-label { font-family: "Times New Roman", serif; font-weight: bold; text-transform: uppercase; font-size: 12px; color: #666; margin-bottom: 10px; border-bottom: 1px solid #ccc; display: block; }
-        .event-entry { display: flex; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #999; }
-        .event-date-box { min-width: 70px; text-align: center; padding: 10px 5px; margin-right: 20px; border: 1px solid #222; background-color: #eee; }
+        /* Base Container */
+        .clay-county-news-box { 
+            width: 90%; 
+            max-width: 500px; 
+            margin: 20px auto; 
+            padding: 25px; 
+            border: 1px solid #222; 
+            background-color: #fffdf5; 
+            box-shadow: 6px 6px 0px #222; 
+            font-family: Arial, sans-serif; 
+        }
+        
+        .calendar-header { 
+            text-align: center; 
+            border-top: 4px solid #222; 
+            border-bottom: 2px solid #222; 
+            padding: 10px 0; 
+            margin-bottom: 20px; 
+        }
+
+        .section-label { 
+            font-family: "Times New Roman", serif; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            font-size: 12px; 
+            color: #666; 
+            margin-bottom: 10px; 
+            border-bottom: 1px solid #ccc; 
+            display: block; 
+        }
+
+        /* Safety Alert Styling */
+        .safety-alert-card {
+            border-left: 10px solid #eb1c24; 
+            background: #fff5f5; 
+            padding: 18px; 
+            margin-bottom: 15px; 
+            border-radius: 4px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* Calendar Entry Styling */
+        .event-entry { 
+            display: flex; 
+            margin-bottom: 15px; 
+            padding-bottom: 15px; 
+            border-bottom: 1px dashed #999; 
+        }
+
+        .event-date-box { 
+            min-width: 70px; 
+            text-align: center; 
+            padding: 10px 5px; 
+            margin-right: 20px; 
+            border: 1px solid #222; 
+            background-color: #333; /* Default Clay County Color */
+            color: #ffffff;
+        }
+
         .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
         .event-month { font-size: 11px; text-transform: uppercase; font-weight: bold; }
+
         .event-info h4 { font-family: "Times New Roman", serif; font-size: 18px; margin: 0; color: #222; font-weight: bold; }
         .event-meta { font-size: 11px; text-transform: uppercase; display: block; color: #666; font-weight: bold; margin-bottom: 5px; }
-        .report-link { display: block; text-align: center; padding: 10px; border: 1px dashed #eb1c24; color: #eb1c24; text-decoration: none; font-weight: bold; font-size: 13px; margin-top: 10px; }
-        
-        /* Town Themes */
-        .flora-theme .event-date-box { background-color: #fe4f00 !important; color: #0c0b82 !important; }
-        .louisville-theme .event-date-box { background-color: #eb1c24 !important; color: #010101 !important; }
-        .clay-city-theme .event-date-box { background-color: #8a8a88 !important; color: #0c30f0 !important; }
+
+        .report-link { 
+            display: block; 
+            text-align: center; 
+            padding: 10px; 
+            border: 1px dashed #eb1c24; 
+            color: #eb1c24; 
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 13px; 
+            margin-top: 10px; 
+        }
+
+        /* Color Lock Themes */
+        .theme-flora { background-color: #fe4f00 !important; color: #0c0b82 !important; }
+        .theme-louisville { background-color: #eb1c24 !important; color: #010101 !important; }
+        .theme-clay-city { background-color: #8a8a88 !important; color: #0c30f0 !important; }
+        .theme-default { background-color: #333333 !important; color: #ffffff !important; }
+
+        @media (max-width: 480px) {
+            .event-entry { flex-direction: column; }
+            .event-date-box { margin-bottom: 10px; width: fit-content; }
+        }
     </style>
 </head>
 <body>
@@ -33,34 +105,151 @@
     </div>
 
     <span class="section-label" style="color: #eb1c24; border-bottom: 2px solid #eb1c24;">Public Safety Alerts</span>
-    <div id="safety-target"></div>
+    <div id="safety-target">
+        <p style='font-size:12px; color:#999; font-style:italic;'>Loading active alerts...</p>
+    </div>
     <a href="https://forms.gle/MTx4rePosdFDbfgx9" target="_blank" class="report-link">⚠️ Report a Hazard</a>
 
     <span class="section-label" style="margin-top:25px;">Upcoming Schedule</span>
     <div id="calendar-target">
-        </div>
+        <p style='font-size:12px; color:#999; font-style:italic;'>Loading community events...</p>
+    </div>
 </div>
 
 <script>
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv";
+    const SAFETY_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaeffFYYrzXJ9JXdmkynl5JbkvWZJusl812_NZuX63o6DynnJwC8G3AxiZLfoh5QGyr2Kys2mVioN7/pub?gid=670653122&single=true&output=csv";
+    const CALENDAR_ICS_URL = "https://calendar.google.com/calendar/ical/ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d%40group.calendar.google.com/public/basic.ics";
 
-    fetch(SHEET_URL).then(r => r.text()).then(csv => {
-        const rows = csv.split('\n').slice(1);
-        let html = "";
-        const now = new Date();
-        rows.forEach(row => {
-            const cols = row.split(',');
-            if (cols.length > 1) {
-                const entryTime = new Date(cols[0]).getTime();
-                if ((now - entryTime) < (24 * 60 * 60 * 1000)) {
-                    html += `<div class="event-entry" style="border-left: 5px solid #eb1c24; background: #fff5f5; padding: 10px; margin-bottom:10px;">
-                        <div class="event-info"><span class="event-meta" style="color:#eb1c24;">⚠️ ${cols[1]}</span><h4>${cols[2]}</h4></div>
+    // --- SAFETY ALERTS FETCHER ---
+    async function loadSafetyAlerts() {
+        try {
+            const response = await fetch(SAFETY_SHEET_URL);
+            const csvText = await response.text();
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',');
+            const rows = lines.slice(1);
+            
+            let html = "";
+            const now = new Date();
+            const oneDayAgo = now.getTime() - (24 * 60 * 60 * 1000);
+
+            rows.forEach(row => {
+                const cols = row.split(',');
+                if (cols.length < 2) return;
+
+                const timestamp = new Date(cols[0]);
+                if (timestamp.getTime() > oneDayAgo) {
+                    const hazard = (cols[1] || "Safety Alert").toUpperCase();
+                    const town = cols[2] || "Clay County";
+                    const location = cols[3] || "View Map for details";
+                    
+                    html += `
+                    <div class="safety-alert-card">
+                        <h3 style="margin: 0 0 8px 0; color: #eb1c24; font-family: 'Arial Black', sans-serif; font-size: 20px; font-weight: 900;">
+                            ⚠️ ${hazard}
+                        </h3>
+                        <div style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 8px;">
+                            📍 ${location} <span style="font-weight: normal; color: #666;">(${town})</span>
+                        </div>
+                        <div style="font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 8px;">
+                            Reported: ${timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
                     </div>`;
+                }
+            });
+            document.getElementById('safety-target').innerHTML = html || "<p style='font-size:12px; color:#999; font-style:italic;'>No active alerts for today.</p>";
+        } catch (e) {
+            console.error("Safety Error:", e);
+            document.getElementById('safety-target').innerHTML = "Error loading alerts.";
+        }
+    }
+
+    // --- CALENDAR SYNC LOGIC ---
+    async function loadCalendar() {
+        try {
+            // Using a CORS proxy to fetch the ICS feed directly in-browser
+            const proxy = "https://api.allorigins.win/raw?url=";
+            const response = await fetch(proxy + encodeURIComponent(CALENDAR_ICS_URL));
+            const icsData = await response.text();
+            
+            const events = parseICS(icsData);
+            let html = "";
+
+            // Sort and filter for upcoming events
+            const sortedEvents = events
+                .filter(e => e.start >= new Date().setHours(0,0,0,0))
+                .sort((a, b) => a.start - b.start)
+                .slice(0, 5); // Show next 5 events
+
+            sortedEvents.forEach(ev => {
+                const townClass = getTownClass(ev.summary + " " + ev.location);
+                const date = new Date(ev.start);
+                const day = date.getDate();
+                const month = date.toLocaleString('en-US', { month: 'short' });
+
+                html += `
+                <div class="event-entry">
+                    <div class="event-date-box ${townClass}">
+                        <span class="event-month">${month}</span>
+                        <span class="event-day">${day}</span>
+                    </div>
+                    <div class="event-info">
+                        <span class="event-meta">${ev.location || "Clay County"}</span>
+                        <h4>${ev.summary}</h4>
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById('calendar-target').innerHTML = html || "<p style='font-size:12px; color:#999; font-style:italic;'>No upcoming events scheduled.</p>";
+        } catch (e) {
+            console.error("Calendar Error:", e);
+            document.getElementById('calendar-target').innerHTML = "Unable to sync calendar.";
+        }
+    }
+
+    // Simple ICS Parser
+    function parseICS(data) {
+        const events = [];
+        const lines = data.split(/\r?\n/);
+        let currentEvent = null;
+
+        lines.forEach(line => {
+            if (line.startsWith("BEGIN:VEVENT")) {
+                currentEvent = {};
+            } else if (line.startsWith("END:VEVENT")) {
+                events.push(currentEvent);
+                currentEvent = null;
+            } else if (currentEvent) {
+                if (line.startsWith("SUMMARY:")) currentEvent.summary = line.substring(8);
+                if (line.startsWith("LOCATION:")) currentEvent.location = line.substring(9);
+                if (line.startsWith("DTSTART")) {
+                    const val = line.split(":")[1];
+                    currentEvent.start = parseICSDate(val);
                 }
             }
         });
-        document.getElementById('safety-target').innerHTML = html || "<p style='font-size:12px; color:#999; font-style:italic;'>No active alerts for today.</p>";
-    });
+        return events;
+    }
+
+    function parseICSDate(icsDate) {
+        const year = icsDate.substring(0, 4);
+        const month = icsDate.substring(4, 6) - 1;
+        const day = icsDate.substring(6, 8);
+        return new Date(year, month, day);
+    }
+
+    function getTownClass(text) {
+        const lower = text.toLowerCase();
+        if (lower.includes("flora")) return "theme-flora";
+        if (lower.includes("louisville")) return "theme-louisville";
+        if (lower.includes("clay city")) return "theme-clay-city";
+        return "theme-default";
+    }
+
+    // Initialize
+    loadSafetyAlerts();
+    loadCalendar();
 </script>
+
 </body>
 </html>
