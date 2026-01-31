@@ -9,22 +9,16 @@
     <title>Clay County Bulletin</title>
     <style>
         .clay-county-news-box { 
-            width: 95%; 
-            max-width: 500px; 
-            margin: 20px auto; 
-            padding: 25px; 
-            border: none; 
-    
-            /* Change 1: Add a background color so the shadow works correctly */
-            background-color: #fffdf5; 
-    
-            /* Change 2: The Shadow (Optional: remove if it still feels "cut off") */
-            box-shadow: 6px 6px 0px #222; 
-    
+            width: 100% !important; 
+            max-width: 100% !important; 
+            margin: 0 !important; 
+            padding: 0 !important; /* This stops the internal cutting off */
+            border: none !important; 
+            background-color: #fcf6de; /* Your background color */
+            box-shadow: none !important; /* Shadow should be on the Divi Row, not here */
             font-family: Arial, sans-serif; 
-    
-            /* Change 3: Force the box to expand to fit all content */
             height: auto !important;
+            min-height: 100% !important;
             overflow: visible !important;
             display: block !important;
         }
