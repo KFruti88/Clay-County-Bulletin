@@ -59,7 +59,8 @@ def fetch_safety_alerts():
             if timestamp > cutoff:
                 # FIX: Check multiple column names to stop the "undefined" error
                 town = row.get('Town/City') or row.get('Town') or row.get('City') or 'Clay County'
-                hazard = row.get('What is the hazard?', 'SAFETY ALERT').upper()
+                hazard = row.get('What is the hazard?') or row.get('Hazard') or 'SAFETY ALERT'
+                hazard = hazard.upper()
                 raw_loc = row.get('Where is it exactly?', '')
                 
                 # Get the translated street name
